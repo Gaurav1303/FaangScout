@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>FaangScout</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { font-family: system-ui, sans-serif; max-width: 780px; margin: 2rem auto; padding: 0 1rem; }
+  h1 { font-size: 1.4rem; }
+  form { display: grid; gap: 0.6rem; margin-bottom: 1.5rem; }
+  label { font-size: 0.85rem; font-weight: 600; }
+  input[type=text], input[type=number] { width: 100%; padding: 0.4rem; box-sizing: border-box; }
+  .row { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
+  .checks { display: flex; gap: 1.2rem; font-size: 0.9rem; }
+  button { padding: 0.5rem 1rem; cursor: pointer; }
+  .job { border-bottom: 1px solid #8883; padding: 0.6rem 0; }
+  .job a { font-weight: 600; }
+  .meta { font-size: 0.82rem; opacity: 0.75; }
+  .error { color: #c0392b; }
+  .warn { color: #b8860b; font-size: 0.85rem; }
+  #status { font-size: 0.9rem; opacity: 0.8; margin: 0.5rem 0; }
+</style>
+</head>
+<body>
+<h1>FaangScout</h1>
+<p>Companies + desired role in, matching career-page openings out.</p>
+
+<form id="search-form">
+  <div>
+    <label for="companies">Companies (comma-separated)</label>
+    <input id="companies" type="text" placeholder="Stripe, Airbnb, Coinbase" required>
+  </div>
+  <div>
+    <label for="role">Desired role</label>
+    <input id="role" type="text" placeholder="backend engineer">
+  </div>
+  <div class="row">
+    <div>
+      <label for="hours">Posted within (hours)</label>
+      <input id="hours" type="number" value="24" min="1" style="width:6rem">
+    </div>
+    <div class="checks">
+      <label><input id="semantic" type="checkbox"> Semantic role match</label>
+      <label><input id="probe" type="checkbox"> Probe unknown companies</label>
+      <label><input id="undated" type="checkbox"> Include undated</label>
+    </div>
+  </div>
+  <div>
+    <button type="submit">Search</button>
+  </div>
+</form>
+
+<div id="status"></div>
+<div id="results"></div>
+
+<script>
+const form = document.getElementById('search-form');
+const statusEl = document.getElementById('status');
+const resultsEl = document.getElementById('results');
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const companies = document.getElementById('companies').value
+    .split(',').map(s => s.trim()).filter(Boolean);
+  const role = document.getElementById('role').value.trim();
+  const hours = Number(document.getElementById('hours').value) || 24;
+  const semantic = document.getElementById('semantic').checked;
+  const probe = document.getElementById('probe').checked;
+  const undated = document.getElementById('undated').checked;
+
+  statusEl.textContent = 'Searching…';
+  resultsEl.innerHTML = '';
+
+  try {
+    const res = await fetch('/api/search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        companies, role: role || null, hours,
+        semantic, probe, include_undated: undated,
+      }),
+    });
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`HTTP ${res.status}: ${text}`);
+    }
+    const data = await res.json();
+    render(data);
+  } catch (err) {
+    statusEl.innerHTML = `<span class="error">${escapeHtml(String(err))}</span>`;
+  }
+});
+
+function render(data) {
+  statusEl.textContent = `${data.jobs.length} job(s) across ${data.sources.length} board(s).`;
+
+  if (data.unresolved && data.unresolved.length) {
+    statusEl.innerHTML += `<div class="warn">Unresolved: ${escapeHtml(data.unresolved.join(', '))}</div>`;
+  }
+  const errored = data.sources.filter(s => s.error);
+  if (errored.length) {
+    statusEl.innerHTML += errored
+      .map(s => `<div class="error">! ${escapeHtml(s.company)} (${escapeHtml(s.source)}): ${escapeHtml(s.error)}</div>`)
+      .join('');
+  }
+  for (const w of (data.warnings || [])) {
+    statusEl.innerHTML += `<div class="warn">${escapeHtml(w)}</div>`;
+  }
+
+  resultsEl.innerHTML = data.jobs.map(job => {
+    const loc = job.locations && job.locations.length ? job.locations.join(', ') : '';
+    const posted = job.posted_at ? new Date(job.posted_at).toLocaleString() : 'unknown date';
+    return `<div class="job">
+      <div><a href="${escapeAttr(job.url)}" target="_blank" rel="noopener">${escapeHtml(job.company)}: ${escapeHtml(job.title)}</a></div>
+      <div class="meta">${escapeHtml(loc)} &middot; ${escapeHtml(posted)} &middot; ${escapeHtml(job.source)}</div>
+    </div>`;
+  }).join('') || '<p>No matching jobs found.</p>';
+}
+
+function escapeHtml(s) {
+  return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function escapeAttr(s) { return escapeHtml(s); }
+</script>
+</body>
+</html>

@@ -1,0 +1,202 @@
+# Seed registry: company name -> career-board source(s).
+#
+# This is a best-effort starter list, not a live-verified one - board tokens
+# occasionally change when a company migrates ATS, and this file was written
+# from training knowledge rather than a live probe (see README: "Accuracy of
+# the seed registry"). A stale token fails loudly (a SourceReport error in the
+# report) rather than silently - it never looks like "this company has no
+# jobs" when the real problem is "this token is wrong".
+#
+# To add a company:
+#   1. Visit its careers page and find the underlying board. The tell is the
+#      URL: boards.greenhouse.io/{token}, jobs.lever.co/{token},
+#      jobs.ashbyhq.com/{token}, {tenant}.wdN.myworkdayjobs.com/.../{site}.
+#   2. Add an entry below (or to your own overrides file - see README).
+#
+# True FAANG-scale in-house career sites (Google, Meta, Apple, Amazon
+# corporate, Netflix) do not run on any of these third-party boards and have
+# no public API this tool can call - they are intentionally left out rather
+# than pointed at guessed endpoints. Everything else in tech mostly does.
+
+companies:
+  - name: Stripe
+    aliases: [stripe]
+    sources:
+      - provider: greenhouse
+        config: {board: stripe}
+
+  - name: Airbnb
+    aliases: [airbnb]
+    sources:
+      - provider: greenhouse
+        config: {board: airbnb}
+
+  - name: Coinbase
+    aliases: [coinbase]
+    sources:
+      - provider: greenhouse
+        config: {board: coinbase}
+
+  - name: DoorDash
+    aliases: [doordash, door dash]
+    sources:
+      - provider: greenhouse
+        config: {board: doordash}
+
+  - name: Robinhood
+    aliases: [robinhood]
+    sources:
+      - provider: greenhouse
+        config: {board: robinhood}
+
+  - name: Pinterest
+    aliases: [pinterest]
+    sources:
+      - provider: greenhouse
+        config: {board: pinterest}
+
+  - name: Reddit
+    aliases: [reddit]
+    sources:
+      - provider: greenhouse
+        config: {board: reddit}
+
+  - name: Discord
+    aliases: [discord]
+    sources:
+      - provider: greenhouse
+        config: {board: discord}
+
+  - name: Figma
+    aliases: [figma]
+    sources:
+      - provider: greenhouse
+        config: {board: figma}
+
+  - name: Databricks
+    aliases: [databricks]
+    sources:
+      - provider: greenhouse
+        config: {board: databricks}
+
+  - name: Cloudflare
+    aliases: [cloudflare]
+    sources:
+      - provider: greenhouse
+        config: {board: cloudflare}
+
+  - name: Dropbox
+    aliases: [dropbox]
+    sources:
+      - provider: greenhouse
+        config: {board: dropbox}
+
+  - name: Okta
+    aliases: [okta]
+    sources:
+      - provider: greenhouse
+        config: {board: okta}
+
+  - name: Asana
+    aliases: [asana]
+    sources:
+      - provider: greenhouse
+        config: {board: asana}
+
+  - name: Instacart
+    aliases: [instacart]
+    sources:
+      - provider: greenhouse
+        config: {board: instacart}
+
+  - name: Duolingo
+    aliases: [duolingo]
+    sources:
+      - provider: greenhouse
+        config: {board: duolingo}
+
+  - name: GitLab
+    aliases: [gitlab, git lab]
+    sources:
+      - provider: greenhouse
+        config: {board: gitlab}
+
+  - name: Twitch
+    aliases: [twitch]
+    sources:
+      - provider: greenhouse
+        config: {board: twitch}
+
+  - name: Roblox
+    aliases: [roblox]
+    sources:
+      - provider: greenhouse
+        config: {board: roblox}
+
+  - name: Notion
+    aliases: [notion]
+    sources:
+      - provider: greenhouse
+        config: {board: notion}
+
+  - name: Anthropic
+    aliases: [anthropic]
+    sources:
+      - provider: greenhouse
+        config: {board: anthropic}
+
+  - name: OpenAI
+    aliases: [openai, open ai]
+    sources:
+      - provider: ashby
+        config: {board: openai}
+
+  - name: Ramp
+    aliases: [ramp]
+    sources:
+      - provider: ashby
+        config: {board: ramp}
+
+  - name: Linear
+    aliases: [linear]
+    sources:
+      - provider: ashby
+        config: {board: linear}
+
+  - name: Vercel
+    aliases: [vercel]
+    sources:
+      - provider: greenhouse
+        config: {board: vercel}
+
+  - name: Plaid
+    aliases: [plaid]
+    sources:
+      - provider: greenhouse
+        config: {board: plaid}
+
+  - name: Palantir Technologies
+    aliases: [palantir]
+    sources:
+      - provider: lever
+        config: {site: palantir}
+
+  - name: Netflix
+    aliases: [netflix]
+    sources: []  # in-house career site, no public ATS API
+
+  - name: Google
+    aliases: [google, alphabet]
+    sources: []  # in-house career site, no public ATS API
+
+  - name: Meta
+    aliases: [meta, facebook]
+    sources: []  # in-house career site, no public ATS API
+
+  - name: Apple
+    aliases: [apple]
+    sources: []  # in-house career site, no public ATS API
+
+  - name: Amazon
+    aliases: [amazon]
+    sources: []  # in-house career site, no public ATS-compatible API
