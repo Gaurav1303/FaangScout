@@ -10,6 +10,7 @@ filters stay boring.
 from __future__ import annotations
 
 import re
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 
 # --------------------------------------------------------------------------- #
@@ -40,7 +41,6 @@ ROLE_SYNONYMS: dict[str, tuple[str, ...]] = {
         "swe",
         "programmer",
         "member of technical staff",
-        "engineer",
     ),
     "backend": ("backend", "back end", "back-end", "server side", "services", "platform"),
     "frontend": ("frontend", "front end", "front-end", "ui engineer", "web engineer", "client"),
@@ -66,6 +66,32 @@ ROLE_SYNONYMS: dict[str, tuple[str, ...]] = {
     "data analyst": ("data analyst", "business analyst", "business intelligence", "bi analyst"),
     "engineering manager": ("engineering manager", "em", "software engineering manager", "dev manager"),
     "solutions architect": ("solutions architect", "solution architect", "sales engineer", "solutions engineer"),
+}
+
+#: Groups that narrow a role rather than name it. When a query hits one of
+#: these, a job MUST match it - "backend engineer" must not return every title
+#: containing "engineer". Groups outside this set name a job family instead.
+SPECIALIZATION_GROUPS: frozenset[str] = frozenset(
+    {
+        "backend",
+        "frontend",
+        "fullstack",
+        "mobile",
+        "machine learning",
+        "data engineer",
+        "data scientist",
+        "devops",
+        "security",
+        "qa",
+        "data analyst",
+    }
+)
+
+#: Loose tokens a family may match on, used ONLY when the query names no
+#: specialization. A bare "software engineer" search should surface "Frontend
+#: Engineer"; a "backend engineer" search must not.
+BROAD_FAMILY_TERMS: dict[str, tuple[str, ...]] = {
+    "software engineer": ("engineer", "developer"),
 }
 
 #: Seniority bands and the tokens that imply them.
@@ -119,31 +145,85 @@ def tokenize(value: str) -> list[str]:
     return [t for t in _NON_ALNUM.sub(" ", (value or "").lower()).split() if t]
 
 
-def expand_role_terms(role: str) -> list[str]:
-    """Expand a user's role string into the phrases boards actually use.
+@dataclass(frozen=True, slots=True)
+class RoleQuery:
+    """A role search split into the part that narrows and the part that names.
 
-    ``"backend engineer"`` expands to include ``"back end"``, ``"sde"``,
-    ``"software development engineer"``, and so on. Returned longest-first so
-    callers can prefer the most specific match.
+    ``required`` holds terms from every *specialization* group the query hit
+    (see :data:`SPECIALIZATION_GROUPS`). When it is non-empty a job must match
+    one of them - otherwise "backend engineer" returns every title containing
+    "engineer", including "Frontend Engineer".
+
+    ``optional`` holds job-family terms plus the raw query. It decides matches
+    only when the query names no specialization at all (a bare "software
+    engineer" search), where the broader net is what the user wants.
+    """
+
+    required: tuple[str, ...] = ()
+    optional: tuple[str, ...] = ()
+
+    @property
+    def all_terms(self) -> tuple[str, ...]:
+        return tuple(sorted(set(self.required) | set(self.optional), key=len, reverse=True))
+
+    @property
+    def empty(self) -> bool:
+        return not self.required and not self.optional
+
+
+def expand_role_query(role: str) -> RoleQuery:
+    """Expand a user's role string into specialization and family terms.
+
+    ``"backend engineer"`` -> required: back end / server side / platform ... ,
+    optional: software engineer / sde / swe ... . ``"software engineer"`` ->
+    required: (), optional: the family terms plus broad "engineer"/"developer".
     """
     role_lower = (role or "").lower().strip()
     if not role_lower:
-        return []
+        return RoleQuery()
 
-    terms: set[str] = {role_lower}
-    normalized = normalize_title(role_lower)
-    if normalized:
-        terms.add(normalized)
+    required: set[str] = set()
+    families: set[str] = set()
+    hit_families: set[str] = set()
 
     for canonical, variants in ROLE_SYNONYMS.items():
         hit = canonical in role_lower or any(
             re.search(rf"\b{re.escape(v)}\b", role_lower) for v in variants
         )
-        if hit:
-            terms.add(canonical)
-            terms.update(variants)
+        if not hit:
+            continue
+        if canonical in SPECIALIZATION_GROUPS:
+            required.add(canonical)
+            required.update(variants)
+        else:
+            hit_families.add(canonical)
+            families.add(canonical)
+            families.update(variants)
 
-    return sorted(terms, key=len, reverse=True)
+    optional: set[str] = {role_lower} | families
+    normalized = normalize_title(role_lower)
+    if normalized:
+        optional.add(normalized)
+
+    # Broad tokens only widen an unspecialized query.
+    if not required:
+        for family in hit_families:
+            optional.update(BROAD_FAMILY_TERMS.get(family, ()))
+
+    return RoleQuery(
+        required=tuple(sorted(required, key=len, reverse=True)),
+        optional=tuple(sorted(optional, key=len, reverse=True)),
+    )
+
+
+def expand_role_terms(role: str) -> list[str]:
+    """Every term a role expands to, longest-first (display/debug helper).
+
+    Matching should use :func:`expand_role_query` instead - this flat list
+    drops the required/optional distinction that keeps "backend engineer" from
+    matching "Frontend Engineer".
+    """
+    return list(expand_role_query(role).all_terms)
 
 
 def detect_seniority(title: str) -> set[str]:

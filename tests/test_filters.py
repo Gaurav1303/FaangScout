@@ -179,3 +179,47 @@ class TestFilterPipeline:
         assert len(kept) == 1
         assert kept[0].title == "Backend Engineer"
         assert len(rejected) == 2
+
+
+class TestRoleSpecializationPrecision:
+    """Regression: a specialized query must not match every engineering title."""
+
+    def _run(self, role, titles):
+        criteria = SearchCriteria.build(["acme"], role=role, posted_within_hours=None)
+        jobs = [make_job(t) for t in titles]
+        kept, _ = RoleKeywordFilter().apply(jobs, criteria)
+        return [j.title for j in kept]
+
+    def test_backend_query_excludes_frontend_and_ml(self):
+        kept = self._run(
+            "backend engineer",
+            [
+                "Senior Backend Engineer",
+                "Backend Engineer, Payments",
+                "Frontend Engineer",
+                "Machine Learning Engineer",
+                "Engineering Manager, Backend",
+                "Product Designer",
+            ],
+        )
+        assert "Senior Backend Engineer" in kept
+        assert "Backend Engineer, Payments" in kept
+        assert "Frontend Engineer" not in kept
+        assert "Machine Learning Engineer" not in kept
+        assert "Product Designer" not in kept
+
+    def test_backend_query_matches_hyphen_and_space_variants(self):
+        kept = self._run("backend engineer", ["Back-End Developer", "Back End Engineer", "Server Side Engineer"])
+        assert len(kept) == 3
+
+    def test_unspecialized_query_is_broad(self):
+        kept = self._run("software engineer", ["Frontend Engineer", "Backend Engineer", "Product Designer"])
+        assert "Frontend Engineer" in kept
+        assert "Backend Engineer" in kept
+        assert "Product Designer" not in kept
+
+    def test_ml_query_excludes_plain_swe(self):
+        kept = self._run("machine learning engineer", ["Machine Learning Engineer", "Backend Engineer", "Applied Scientist"])
+        assert "Machine Learning Engineer" in kept
+        assert "Applied Scientist" in kept
+        assert "Backend Engineer" not in kept

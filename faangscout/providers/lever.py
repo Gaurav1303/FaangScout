@@ -11,7 +11,8 @@ from ..models import FetchHints, Job, Precision
 from ..normalize import detect_remote, parse_timestamp, strip_html
 from .base import Provider, ProviderError, register
 
-_BASE = "https://api.lever.co/v0/postings/{site}"
+_DEFAULT_BASE = "https://api.lever.co"
+_PATH = "/v0/postings/{site}"
 
 
 @register("lever")
@@ -21,7 +22,8 @@ class LeverProvider(Provider):
         if not site:
             raise ProviderError("lever: config requires 'site'")
 
-        payload = self._get_json(_BASE.format(site=site), params={"mode": "json"})
+        base = config.get("base_url", _DEFAULT_BASE).rstrip("/")
+        payload = self._get_json(base + _PATH.format(site=site), params={"mode": "json"})
         if not isinstance(payload, list):
             raise ProviderError(f"lever: unexpected response shape for site {site!r}")
 

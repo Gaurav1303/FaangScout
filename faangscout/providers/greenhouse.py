@@ -15,7 +15,8 @@ from ..models import FetchHints, Job, Precision
 from ..normalize import detect_remote, strip_html
 from .base import Provider, ProviderError, register
 
-_BASE = "https://boards-api.greenhouse.io/v1/boards/{board}/jobs"
+_DEFAULT_BASE = "https://boards-api.greenhouse.io"
+_PATH = "/v1/boards/{board}/jobs"
 
 
 @register("greenhouse")
@@ -25,7 +26,8 @@ class GreenhouseProvider(Provider):
         if not board:
             raise ProviderError("greenhouse: config requires 'board'")
 
-        payload = self._get_json(_BASE.format(board=board), params={"content": "true"})
+        base = config.get("base_url", _DEFAULT_BASE).rstrip("/")
+        payload = self._get_json(base + _PATH.format(board=board), params={"content": "true"})
         if not isinstance(payload, dict) or "jobs" not in payload:
             raise ProviderError(f"greenhouse: unexpected response shape for board {board!r}")
 

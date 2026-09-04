@@ -10,7 +10,8 @@ from ..models import FetchHints, Job, Precision
 from ..normalize import detect_remote, parse_timestamp, strip_html
 from .base import Provider, ProviderError, register
 
-_BASE = "https://api.smartrecruiters.com/v1/companies/{company}/postings"
+_DEFAULT_BASE = "https://api.smartrecruiters.com"
+_PATH = "/v1/companies/{company}/postings"
 _PAGE_SIZE = 100
 
 
@@ -22,11 +23,12 @@ class SmartRecruitersProvider(Provider):
             raise ProviderError("smartrecruiters: config requires 'company'")
 
         company = config.get("company_name", company_token)
+        base = config.get("base_url", _DEFAULT_BASE).rstrip("/")
         jobs: list[Job] = []
         offset = 0
         while True:
             payload = self._get_json(
-                _BASE.format(company=company_token),
+                base + _PATH.format(company=company_token),
                 params={"limit": _PAGE_SIZE, "offset": offset},
             )
             if not isinstance(payload, dict):

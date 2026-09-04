@@ -83,6 +83,28 @@ window, a couple of checkboxes) that calls `POST /api/search` and lists
 results. It's intentionally minimal; the interesting logic is all in
 `scout()`, not the UI.
 
+## Try it offline (no internet needed)
+
+`demo/fixture_board.py` serves Greenhouse-, Lever-, and Ashby-shaped JSON on
+localhost, and `demo/companies.yaml` points three demo companies at it via
+each provider's `base_url` config key. The whole pipeline runs for real -
+only the boards are local:
+
+```bash
+python demo/fixture_board.py --port 8765 &
+
+faangscout --companies-file demo/companies.yaml \
+  --companies "Demo Greenhouse Co" "Demo Lever Co" "Demo Ashby Co" \
+  --role "backend engineer" --hours 24
+
+# or point the web UI at the same fixtures
+FAANGSCOUT_COMPANIES_FILE=demo/companies.yaml uvicorn faangscout.api.app:app
+```
+
+Postings are generated relative to "now", so `--hours 24` vs `--hours 48`
+visibly changes the result set. The same `base_url` key works for real
+self-hosted or proxied boards.
+
 ## Adding a company
 
 Two ways, no code changes either way:
@@ -108,6 +130,10 @@ URL (Workday needs `host`, `tenant`, and `site` - see
 
 For a one-off company you don't want to add anywhere, use the inline form on
 the CLI: `"Acme Corp:greenhouse:board=acme"`.
+
+Every HTTP provider also accepts an optional `base_url` in its config,
+overriding the default API host - used by the offline demo above, and useful
+for a proxied or self-hosted board.
 
 ### Accuracy of the seed registry
 
@@ -191,7 +217,7 @@ pip install -r requirements-dev.txt
 pytest
 ```
 
-All 77 tests run against mocked HTTP responses (`httpx.MockTransport`) - no
+All 86 tests run against mocked HTTP responses (`httpx.MockTransport`) - no
 network access needed, and none of the numbers in these tests came from a
 live board.
 

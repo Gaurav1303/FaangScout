@@ -11,7 +11,8 @@ from ..models import FetchHints, Job, Precision
 from ..normalize import detect_remote, parse_timestamp, strip_html
 from .base import Provider, ProviderError, register
 
-_URL = "https://api.ashbyhq.com/posting-api/job-board/{board}"
+_DEFAULT_BASE = "https://api.ashbyhq.com"
+_PATH = "/posting-api/job-board/{board}"
 
 
 @register("ashby")
@@ -21,9 +22,10 @@ class AshbyProvider(Provider):
         if not board:
             raise ProviderError("ashby: config requires 'board'")
 
+        base = config.get("base_url", _DEFAULT_BASE).rstrip("/")
         try:
             response = self._client.get(
-                _URL.format(board=board), params={"includeCompensation": "false"}
+                base + _PATH.format(board=board), params={"includeCompensation": "false"}
             )
             response.raise_for_status()
             payload = response.json()

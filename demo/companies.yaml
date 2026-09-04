@@ -1,0 +1,25 @@
+# Overrides that point companies at the local fixture board
+# (demo/fixture_board.py) instead of the real job-board APIs.
+#
+#   python demo/fixture_board.py --port 8765 &
+#   faangscout --companies-file demo/companies.yaml \
+#              --companies "Demo Greenhouse Co" --role "backend engineer"
+
+companies:
+  - name: Demo Greenhouse Co
+    aliases: [demogh, demo greenhouse]
+    sources:
+      - provider: greenhouse
+        config: {board: demo, base_url: "http://127.0.0.1:8765"}
+
+  - name: Demo Lever Co
+    aliases: [demolever, demo lever]
+    sources:
+      - provider: lever
+        config: {site: demo, base_url: "http://127.0.0.1:8765"}
+
+  - name: Demo Ashby Co
+    aliases: [demoashby, demo ashby]
+    sources:
+      - provider: ashby
+        config: {board: demo, base_url: "http://127.0.0.1:8765"}

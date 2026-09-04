@@ -6,6 +6,7 @@ from faangscout.normalize import (
     collapse,
     detect_remote,
     detect_seniority,
+    expand_role_query,
     expand_role_terms,
     normalize_title,
     parse_relative,
@@ -38,11 +39,43 @@ def test_normalize_title(raw, expected):
 def test_expand_role_terms_includes_synonyms():
     terms = expand_role_terms("backend engineer")
     assert "back end" in terms
-    assert "sde" in terms or "software development engineer" in terms
+    assert "server side" in terms
 
 
 def test_expand_role_terms_empty():
     assert expand_role_terms("") == []
+
+
+class TestExpandRoleQuery:
+    def test_specialization_is_required(self):
+        query = expand_role_query("backend engineer")
+        assert "backend" in query.required
+        assert "back end" in query.required
+        # The bare family token must never become a deciding term here, or
+        # "Frontend Engineer" matches a backend search.
+        assert "engineer" not in query.required
+        assert "engineer" not in query.optional
+
+    def test_unspecialized_query_gets_broad_terms(self):
+        query = expand_role_query("software engineer")
+        assert query.required == ()
+        assert "engineer" in query.optional
+        assert "software engineer" in query.optional
+
+    def test_family_without_broad_terms_stays_strict(self):
+        query = expand_role_query("engineering manager")
+        assert query.required == ()
+        assert "engineering manager" in query.optional
+        assert "engineer" not in query.optional
+
+    def test_ml_query_requires_ml_terms(self):
+        query = expand_role_query("ml engineer")
+        assert "machine learning" in query.required
+
+    def test_empty_query(self):
+        query = expand_role_query("")
+        assert query.empty is True
+        assert query.all_terms == ()
 
 
 def test_detect_seniority():

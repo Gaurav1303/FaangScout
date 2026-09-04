@@ -13,7 +13,7 @@ from __future__ import annotations
 import re
 
 from ..models import Job, Rejection, SearchCriteria
-from ..normalize import expand_role_terms, normalize_title
+from ..normalize import expand_role_query, normalize_title
 from .base import Filter, register
 
 
@@ -31,11 +31,18 @@ class RoleKeywordFilter(Filter):
         if not role:
             return jobs, []
 
-        terms = expand_role_terms(role)
-        if not terms:
+        query = expand_role_query(role)
+        if query.empty:
             return jobs, []
 
-        patterns = [re.compile(rf"\b{re.escape(t)}\b", re.IGNORECASE) for t in terms]
+        # A specialization in the query is mandatory ("backend engineer" must
+        # not match "Frontend Engineer"); with no specialization, the family
+        # terms decide.
+        deciding_terms = query.required or query.optional
+        if not deciding_terms:
+            return jobs, []
+
+        patterns = [_compile(t) for t in deciding_terms]
 
         kept: list[Job] = []
         rejected: list[Rejection] = []
@@ -47,3 +54,9 @@ class RoleKeywordFilter(Filter):
             else:
                 rejected.append(Rejection(job, self.name, f"title {job.title!r} does not match role {role!r}"))
         return kept, rejected
+
+
+def _compile(term: str) -> re.Pattern[str]:
+    """Word-boundary match, tolerating hyphen/space variants ("back-end"/"back end")."""
+    pattern = r"[\s\-/]+".join(re.escape(part) for part in re.split(r"[\s\-/]+", term) if part)
+    return re.compile(rf"(?<![a-z0-9]){pattern}(?![a-z0-9])", re.IGNORECASE)
