@@ -9,8 +9,13 @@ the window meaningless without the user ever choosing that.
 
 from __future__ import annotations
 
-from ..models import Job, Rejection, SearchCriteria
+from datetime import timedelta
+
+from ..models import Job, Precision, Rejection, SearchCriteria
 from .base import Filter, register
+
+#: How far past a date-only timestamp a posting may actually have landed.
+_DATE_ONLY_GRACE = timedelta(hours=24)
 
 
 @register("posted_within")
@@ -34,7 +39,15 @@ class TimeWindowFilter(Filter):
                 else:
                     rejected.append(Rejection(job, self.name, "no parseable post date"))
                 continue
-            if job.posted_at >= since:
+            # A date-only source ("March 5, 2026") parses to midnight, but the
+            # posting could have landed any time that day. Compare against the
+            # end of that day so this morning's run doesn't drop a job that
+            # merely *parsed* as 32h old.
+            effective = job.posted_at
+            if job.precision is Precision.DATE_ONLY:
+                effective = job.posted_at + _DATE_ONLY_GRACE
+
+            if effective >= since:
                 kept.append(job)
             else:
                 age = job.age

@@ -4,10 +4,12 @@ import httpx
 import pytest
 
 from faangscout.models import FetchHints, Precision
+from faangscout.providers.amazon import AmazonProvider
 from faangscout.providers.ashby import AshbyProvider
 from faangscout.providers.base import ProviderError
 from faangscout.providers.greenhouse import GreenhouseProvider
 from faangscout.providers.lever import LeverProvider
+from faangscout.providers.microsoft import MicrosoftProvider
 from faangscout.providers.smartrecruiters import SmartRecruitersProvider
 from faangscout.providers.workday import WorkdayProvider
 
@@ -199,3 +201,145 @@ class TestWorkday:
         provider = WorkdayProvider(client=client_with(lambda r: httpx.Response(200, json={})))
         with pytest.raises(ProviderError):
             provider.fetch({"tenant": "acme"}, HINTS)
+
+
+class TestAmazon:
+    """amazon.jobs search.json - in-house portal, date-only timestamps."""
+
+    def _payload(self, n=1, hits=1):
+        return {
+            "error": None,
+            "hits": hits,
+            "jobs": [
+                {
+                    "id_icims": f"28473{i}",
+                    "title": "Software Development Engineer II",
+                    "job_path": f"/en/jobs/28473{i}/software-development-engineer-ii",
+                    "posted_date": "March 5, 2026",
+                    "normalized_location": "Seattle, Washington, USA",
+                    "location": "US, WA, Seattle",
+                    "job_category": "Software Development",
+                    "job_schedule_type": "Full Time",
+                    "description": "<p>Build large scale systems.</p>",
+                }
+                for i in range(n)
+            ],
+        }
+
+    def test_happy_path(self):
+        provider = AmazonProvider(client=client_with(lambda r: httpx.Response(200, json=self._payload())))
+        jobs = provider.fetch({"company_name": "Amazon"}, HINTS)
+
+        assert len(jobs) == 1
+        job = jobs[0]
+        assert job.company == "Amazon"
+        assert job.title == "Software Development Engineer II"
+        assert job.url == "https://www.amazon.jobs/en/jobs/284730/software-development-engineer-ii"
+        assert job.source == "amazon"
+        assert job.external_id == "284730"
+        assert job.precision == Precision.DATE_ONLY
+        assert job.posted_at == datetime(2026, 3, 5, tzinfo=UTC)
+        assert job.locations == ("Seattle, Washington, USA",)
+        assert job.department == "Software Development"
+        assert "Build large scale systems." in job.description
+
+    def test_role_hint_is_sent_as_base_query(self):
+        seen = {}
+
+        def handler(request):
+            seen.update(dict(request.url.params))
+            return httpx.Response(200, json=self._payload())
+
+        provider = AmazonProvider(client=client_with(handler))
+        provider.fetch({}, FetchHints(role_query="backend engineer"))
+        assert seen["base_query"] == "backend engineer"
+        assert seen["sort"] == "recent"
+
+    def test_api_error_field_raises(self):
+        provider = AmazonProvider(
+            client=client_with(lambda r: httpx.Response(200, json={"error": "rate limited", "jobs": []}))
+        )
+        with pytest.raises(ProviderError, match="rate limited"):
+            provider.fetch({}, HINTS)
+
+    def test_shape_change_raises_rather_than_returning_empty(self):
+        provider = AmazonProvider(
+            client=client_with(lambda r: httpx.Response(200, json={"results": []}))
+        )
+        with pytest.raises(ProviderError, match="no 'jobs' key"):
+            provider.fetch({}, HINTS)
+
+    def test_http_error_raises(self):
+        provider = AmazonProvider(client=client_with(lambda r: httpx.Response(403)))
+        with pytest.raises(ProviderError):
+            provider.fetch({}, HINTS)
+
+
+class TestMicrosoft:
+    """gcsservices.careers.microsoft.com search API - nested result envelope."""
+
+    def _payload(self, n=1, total=1):
+        return {
+            "operationResult": {
+                "result": {
+                    "totalJobs": total,
+                    "jobs": [
+                        {
+                            "jobId": f"18123{i}",
+                            "title": "Senior Software Engineer",
+                            "postingDate": "2026-03-05T00:00:00+00:00",
+                            "properties": {
+                                "primaryLocation": "Redmond, Washington, United States",
+                                "locations": ["Redmond, Washington, United States"],
+                                "workSiteFlexibility": "Up to 100% work from home",
+                                "profession": "Software Engineering",
+                                "employmentType": "Full-Time",
+                            },
+                        }
+                        for i in range(n)
+                    ],
+                }
+            }
+        }
+
+    def test_happy_path(self):
+        provider = MicrosoftProvider(client=client_with(lambda r: httpx.Response(200, json=self._payload())))
+        jobs = provider.fetch({"company_name": "Microsoft"}, HINTS)
+
+        assert len(jobs) == 1
+        job = jobs[0]
+        assert job.title == "Senior Software Engineer"
+        assert job.url == "https://jobs.careers.microsoft.com/global/en/job/181230"
+        assert job.source == "microsoft"
+        assert job.precision == Precision.EXACT
+        assert job.posted_at == datetime(2026, 3, 5, tzinfo=UTC)
+        assert job.locations == ("Redmond, Washington, United States",)
+        assert job.remote is True  # "work from home"
+        assert job.department == "Software Engineering"
+        assert job.employment_type == "Full-Time"
+
+    def test_role_hint_sent_as_q(self):
+        seen = {}
+
+        def handler(request):
+            seen.update(dict(request.url.params))
+            return httpx.Response(200, json=self._payload())
+
+        provider = MicrosoftProvider(client=client_with(handler))
+        provider.fetch({}, FetchHints(role_query="data scientist"))
+        assert seen["q"] == "data scientist"
+        assert seen["o"] == "Recent"
+
+    def test_missing_envelope_raises(self):
+        provider = MicrosoftProvider(client=client_with(lambda r: httpx.Response(200, json={"jobs": []})))
+        with pytest.raises(ProviderError, match="operationResult"):
+            provider.fetch({}, HINTS)
+
+    def test_string_location_is_tolerated(self):
+        payload = self._payload()
+        payload["operationResult"]["result"]["jobs"][0]["properties"]["locations"] = "Dublin, Ireland"
+        payload["operationResult"]["result"]["jobs"][0]["properties"].pop("primaryLocation")
+
+        provider = MicrosoftProvider(client=client_with(lambda r: httpx.Response(200, json=payload)))
+        jobs = provider.fetch({}, HINTS)
+        assert jobs[0].locations == ("Dublin, Ireland",)

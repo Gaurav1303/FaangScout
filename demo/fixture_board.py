@@ -1,6 +1,6 @@
 """A local stand-in for real job boards, for running FaangScout offline.
 
-Serves Greenhouse-, Lever-, and Ashby-shaped JSON on 127.0.0.1 so the full
+Serves Greenhouse-, Lever-, Ashby-, Amazon-, and Microsoft-shaped JSON on 127.0.0.1 so the full
 pipeline (resolve -> fetch -> filter -> report) can be exercised without
 reaching the real boards - useful in a sandbox with no egress, on a plane, or
 in CI. Postings are generated relative to "now" so the time-window filter has
@@ -91,6 +91,54 @@ def _ashby_payload(board: str) -> dict:
     }
 
 
+def _amazon_payload() -> dict:
+    return {
+        "error": None,
+        "hits": len(_POSTINGS),
+        "jobs": [
+            {
+                "id_icims": str(400 + i),
+                "title": title,
+                "job_path": f"/en/jobs/{400 + i}/{title.lower().replace(' ', '-').replace(',', '')}",
+                # Amazon exposes a calendar date only, no time of day.
+                "posted_date": (NOW - timedelta(hours=hours)).strftime("%B %-d, %Y"),
+                "normalized_location": location,
+                "job_category": dept,
+                "job_schedule_type": "Full Time",
+                "description": f"<p>We are hiring a {title}.</p>",
+            }
+            for i, (title, hours, location, dept) in enumerate(_POSTINGS)
+        ],
+    }
+
+
+def _microsoft_payload() -> dict:
+    return {
+        "operationResult": {
+            "result": {
+                "totalJobs": len(_POSTINGS),
+                "jobs": [
+                    {
+                        "jobId": str(500 + i),
+                        "title": title,
+                        "postingDate": _iso(hours),
+                        "properties": {
+                            "primaryLocation": location,
+                            "locations": [location],
+                            "workSiteFlexibility": "Up to 100% work from home"
+                            if "remote" in location.lower()
+                            else "Up to 50% work from home",
+                            "profession": dept,
+                            "employmentType": "Full-Time",
+                        },
+                    }
+                    for i, (title, hours, location, dept) in enumerate(_POSTINGS)
+                ],
+            }
+        }
+    }
+
+
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:  # noqa: N802 - stdlib naming
         path = self.path.split("?", 1)[0]
@@ -106,6 +154,12 @@ class Handler(BaseHTTPRequestHandler):
         # Ashby: /posting-api/job-board/{board}
         elif len(parts) == 3 and parts[0] == "posting-api" and parts[1] == "job-board":
             payload = _ashby_payload(parts[2])
+        # Amazon: /en/search.json
+        elif parts == ["en", "search.json"]:
+            payload = _amazon_payload()
+        # Microsoft: /search/api/v1/search
+        elif parts == ["search", "api", "v1", "search"]:
+            payload = _microsoft_payload()
 
         if payload is None:
             self.send_error(404, "no fixture for this path")

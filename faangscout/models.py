@@ -22,6 +22,11 @@ class Precision(str, Enum):
 
     EXACT = "exact"
     APPROXIMATE = "approximate"
+    #: A calendar date with no time of day (Amazon: "March 5, 2026"). The
+    #: timestamp lands at midnight, so the posting really happened anywhere in
+    #: the following 24h - the time-window filter widens accordingly rather
+    #: than dropping this morning's job because it parsed as "32h ago".
+    DATE_ONLY = "date_only"
     UNKNOWN = "unknown"
 
 

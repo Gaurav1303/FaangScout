@@ -197,6 +197,18 @@ companies:
     aliases: [apple]
     sources: []  # in-house career site, no public ATS API
 
+  # Amazon and Microsoft run in-house career sites, but both expose the JSON
+  # endpoint their own frontend calls. Those are internal endpoints, not
+  # supported public APIs - verify with `faangscout --check` before trusting
+  # a quiet result.
   - name: Amazon
-    aliases: [amazon]
-    sources: []  # in-house career site, no public ATS-compatible API
+    aliases: [amazon, aws, amazon web services]
+    sources:
+      - provider: amazon
+        config: {}
+
+  - name: Microsoft
+    aliases: [microsoft, msft]
+    sources:
+      - provider: microsoft
+        config: {}

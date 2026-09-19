@@ -23,3 +23,17 @@ companies:
     sources:
       - provider: ashby
         config: {board: demo, base_url: "http://127.0.0.1:8765"}
+
+  # The same fixtures served in Amazon's and Microsoft's in-house shapes, so
+  # those providers can be exercised without reaching the real portals.
+  - name: Demo Amazon
+    aliases: [demoamazon]
+    sources:
+      - provider: amazon
+        config: {base_url: "http://127.0.0.1:8765"}
+
+  - name: Demo Microsoft
+    aliases: [demomicrosoft]
+    sources:
+      - provider: microsoft
+        config: {base_url: "http://127.0.0.1:8765"}

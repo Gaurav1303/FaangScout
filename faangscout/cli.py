@@ -6,6 +6,7 @@ import argparse
 import json
 import sys
 
+from .check import check_sources
 from .companies.registry import load_registry
 from .models import SearchCriteria
 from .scout import scout
@@ -53,6 +54,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="Path to a YAML overrides file merged on top of the bundled registry "
         "(same as FAANGSCOUT_COMPANIES_FILE)",
     )
+    parser.add_argument(
+        "--check",
+        action="store_true",
+        help="Diagnose reachability instead of searching: for each company, report whether its "
+        "career portal responds, how many postings came back, and whether they carry usable dates",
+    )
     parser.add_argument("--json", action="store_true", help="Print machine-readable JSON instead of a text report")
     parser.add_argument("--explain", action="store_true", help="Also list rejected jobs and why they were dropped")
     return parser
@@ -60,6 +67,9 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+
+    if args.check:
+        return _run_check(args)
 
     criteria = SearchCriteria.build(
         args.companies,
@@ -78,6 +88,58 @@ def main(argv: list[str] | None = None) -> int:
 
     _print_text_report(report, explain=args.explain)
     return 0
+
+
+def _run_check(args) -> int:
+    registry = load_registry(args.companies_file)
+    results, unresolved = check_sources(
+        args.companies, registry=registry, role=args.role, probe_unknown=args.probe
+    )
+
+    if args.json:
+        print(
+            json.dumps(
+                {
+                    "results": [
+                        {
+                            "company": r.company,
+                            "source": r.source,
+                            "status": r.status,
+                            "ok": r.ok,
+                            "total_jobs": r.total_jobs,
+                            "dated_jobs": r.dated_jobs,
+                            "sample_titles": r.sample_titles,
+                            "error": r.error,
+                            "elapsed_ms": r.elapsed_ms,
+                        }
+                        for r in results
+                    ],
+                    "unresolved": unresolved,
+                },
+                indent=2,
+            )
+        )
+        return 0 if all(r.ok for r in results) and not unresolved else 1
+
+    if not results and not unresolved:
+        print("Nothing to check.")
+        return 1
+
+    for r in results:
+        print(f"[{r.status}] {r.company} ({r.source}) - {r.elapsed_ms}ms")
+        if r.error:
+            print(f"    error: {r.error}")
+        else:
+            print(f"    {r.total_jobs} posting(s) returned, {r.dated_jobs} with a usable date")
+            for title in r.sample_titles:
+                print(f"      - {title}")
+
+    for name in unresolved:
+        print(f"[UNRESOLVED] {name} - no board configured for this company")
+
+    failed = [r for r in results if not r.ok]
+    print(f"\n{len(results) - len(failed)}/{len(results)} board(s) reachable.")
+    return 0 if not failed and not unresolved else 1
 
 
 def _report_to_dict(report, *, explain: bool) -> dict:

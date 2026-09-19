@@ -22,8 +22,8 @@ company names  ->  [registry/resolver]  ->  [providers]  ->  [filters]  ->  resu
   Bundled as data (`companies/data/known_boards.yaml`), not code - adding a
   company means adding a YAML entry, never touching Python. See "Adding a
   company" below.
-- **`providers/`** - one class per ATS backend (Greenhouse, Lever, Ashby,
-  SmartRecruiters, Workday), each implementing the same `fetch(config,
+- **`providers/`** - one class per board backend (Greenhouse, Lever, Ashby,
+  SmartRecruiters, Workday, plus Amazon and Microsoft in-house portals), each implementing the same `fetch(config,
   hints) -> list[Job]` interface. Adding a new job-board backend means adding
   one file and registering it - nothing else changes. See "Adding a
   provider".
@@ -82,6 +82,55 @@ Then open `http://127.0.0.1:8000` - a one-page form (companies, role, time
 window, a couple of checkboxes) that calls `POST /api/search` and lists
 results. It's intentionally minimal; the interesting logic is all in
 `scout()`, not the UI.
+
+## Checking whether a career portal is reachable
+
+A board that returns zero jobs and a board that is blocked, moved, or
+reshaped look identical in a normal run - both produce an empty list.
+`--check` separates them:
+
+```bash
+faangscout --companies Amazon Microsoft Stripe --role "software engineer" --check
+```
+
+```
+[OK] Amazon (amazon) - 812ms
+    47 posting(s) returned, 47 with a usable date
+      - Software Development Engineer II
+      ...
+[UNREACHABLE] Stripe (greenhouse:stripe) - 210ms
+    error: greenhouse: https://boards-api.greenhouse.io/... -> HTTP 404
+```
+
+Statuses are `OK`, `REACHABLE (0 jobs)`, `REACHABLE (no usable dates)`,
+`UNREACHABLE`, and `UNRESOLVED`. It exits non-zero if anything failed, so it
+works as a health check in a cron job. Add `--json` for machine-readable
+output.
+
+Run this first whenever a company returns nothing and you expected results -
+it distinguishes "genuinely no new postings" from "this board token is stale."
+
+## Amazon and Microsoft
+
+Both run in-house career sites rather than a third-party ATS, but each
+exposes the JSON endpoint its own frontend calls, and FaangScout speaks both:
+
+```bash
+faangscout --companies Amazon Microsoft --role "backend engineer" --hours 24
+```
+
+**These are internal endpoints, not supported public APIs.** They carry no
+stability guarantee and either company can change or gate them without
+notice. The providers parse defensively and raise a named error on a shape
+change rather than returning an empty list that reads like "no jobs today" -
+but treat `--check` as a prerequisite before trusting a quiet result.
+
+Amazon exposes a calendar date with no time of day, so its postings are
+`Precision.DATE_ONLY`: the timestamp lands at midnight and the posting could
+have happened any time in the following 24h. The time-window filter widens by
+24h for these rather than dropping this morning's job because it parsed as
+"32h ago". Google, Meta, Apple, and Netflix have no comparable endpoint and
+remain listed with empty `sources`.
 
 ## Try it offline (no internet needed)
 
@@ -217,7 +266,7 @@ pip install -r requirements-dev.txt
 pytest
 ```
 
-All 86 tests run against mocked HTTP responses (`httpx.MockTransport`) - no
+All 98 tests run against mocked HTTP responses (`httpx.MockTransport`) - no
 network access needed, and none of the numbers in these tests came from a
 live board.
 

@@ -4,7 +4,7 @@ from faangscout.filters import FilterPipeline
 from faangscout.filters.role import RoleKeywordFilter
 from faangscout.filters.semantic import SemanticRoleFilter
 from faangscout.filters.time_window import TimeWindowFilter
-from faangscout.models import Job, Rejection, SearchCriteria
+from faangscout.models import Job, Precision, Rejection, SearchCriteria
 
 NOW = datetime.now(UTC)
 
@@ -53,6 +53,29 @@ class TestTimeWindow:
     def test_always_enabled(self):
         criteria = SearchCriteria(companies=["acme"])
         assert TimeWindowFilter().enabled(criteria) is True
+
+    def test_date_only_gets_grace_within_window(self):
+        """Amazon-style date-only posting from 'yesterday' must survive a 24h window."""
+        criteria = SearchCriteria.build(["acme"], posted_within_hours=24)
+        # Parsed at midnight, so it reads as 32h old, but the posting could
+        # have landed any time that day.
+        job = make_job(hours_ago=32, precision=Precision.DATE_ONLY)
+        kept, rejected = TimeWindowFilter().apply([job], criteria)
+        assert len(kept) == 1
+        assert rejected == []
+
+    def test_date_only_grace_is_bounded(self):
+        criteria = SearchCriteria.build(["acme"], posted_within_hours=24)
+        job = make_job(hours_ago=60, precision=Precision.DATE_ONLY)
+        kept, rejected = TimeWindowFilter().apply([job], criteria)
+        assert kept == []
+        assert len(rejected) == 1
+
+    def test_exact_precision_gets_no_grace(self):
+        criteria = SearchCriteria.build(["acme"], posted_within_hours=24)
+        job = make_job(hours_ago=32, precision=Precision.EXACT)
+        kept, rejected = TimeWindowFilter().apply([job], criteria)
+        assert kept == []
 
 
 class TestRoleKeyword:
