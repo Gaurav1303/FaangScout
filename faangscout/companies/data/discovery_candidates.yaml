@@ -1,0 +1,62 @@
+# What `faangscout --discover` tries for a company with no confirmed board.
+#
+# Keys are registry names (see known_boards.yaml). For each company:
+#   slugs:   board tokens to try on Greenhouse, Lever, Ashby, and
+#            SmartRecruiters, in order. Slugs derived from the name and
+#            aliases are always tried too - list only the non-obvious ones
+#            (old brand names, legal entities).
+#   workday: tenant/site pairs to try. Workday assigns each tenant a numbered
+#            host (wd1, wd5, ...) that can't be derived from the name; list
+#            the likely one under `hosts` and discovery falls back to the
+#            common numbers.
+#
+# Every entry here is an unverified guess. Discovery records which one
+# actually answered, with sample job titles, so a hit can be sanity-checked
+# (a same-named but unrelated company on the same ATS is the main risk).
+
+candidates:
+  Adobe:
+    workday:
+      - {tenant: adobe, hosts: [wd5], sites: [external_experienced, external_university, External]}
+  Salesforce:
+    workday:
+      - {tenant: salesforce, hosts: [wd12], sites: [External_Career_Site]}
+  Walmart:
+    workday:
+      - {tenant: walmart, hosts: [wd5], sites: [WalmartExternal]}
+  NVIDIA:
+    workday:
+      - {tenant: nvidia, hosts: [wd5], sites: [NVIDIAExternalCareerSite]}
+  Mastercard:
+    workday:
+      - {tenant: mastercard, hosts: [wd1], sites: [CorporateCareers]}
+  Intuit:
+    workday:
+      - {tenant: intuit, sites: [Intuit, External, careers]}
+  Qualcomm:
+    workday:
+      - {tenant: qualcomm, hosts: [wd5], sites: [External, Qualcomm, careers]}
+  Nutanix:
+    workday:
+      - {tenant: nutanix, sites: [Nutanix_Careers, Careers, External]}
+  Cohesity:
+    workday:
+      - {tenant: cohesity, sites: [Cohesity_Careers, Cohesity, External]}
+  Sprinklr:
+    workday:
+      - {tenant: sprinklr, sites: [careers, Sprinklr, External]}
+  Arcesium:
+    workday:
+      - {tenant: arcesium, sites: [Arcesium, External, careers]}
+  Compass:
+    slugs: [urbancompass]
+  ShareChat:
+    slugs: [mohallatech, sharechatmoj]
+  Zepto:
+    slugs: [zeptonow, kiranakart]
+  PhonePe:
+    slugs: [phonepeindia]
+  Postman:
+    slugs: [postmanlabs]
+  Zomato:
+    slugs: [eternal, zomatoltd]

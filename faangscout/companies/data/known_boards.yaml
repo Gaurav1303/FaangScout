@@ -194,7 +194,7 @@ companies:
     sources: []  # in-house career site, no public ATS API
 
   - name: Apple
-    aliases: [apple]
+    aliases: [apple, apple inc]
     sources: []  # in-house career site, no public ATS API
 
   # Amazon and Microsoft run in-house career sites, but both expose the JSON
@@ -212,3 +212,114 @@ companies:
     sources:
       - provider: microsoft
         config: {}
+
+# --------------------------------------------------------------------------- #
+# Companies whose board is not confirmed yet. `sources: []` keeps them
+# resolvable by name (and in the report as UNRESOLVED) until `faangscout
+# --discover` finds a working board - candidates it tries live in
+# discovery_candidates.yaml. Confirmed configs get moved up into `sources`.
+# --------------------------------------------------------------------------- #
+
+  - name: Adobe
+    aliases: [adobe, adobe inc]
+    sources: []
+
+  - name: Salesforce
+    aliases: [salesforce, sfdc]
+    sources: []
+
+  - name: Walmart
+    aliases: [walmart, walmart global tech, walmart labs]
+    sources: []
+
+  - name: NVIDIA
+    aliases: [nvidia]
+    sources: []
+
+  - name: Mastercard
+    aliases: [mastercard, master card]
+    sources: []
+
+  - name: Intuit
+    aliases: [intuit]
+    sources: []
+
+  - name: Qualcomm
+    aliases: [qualcomm]
+    sources: []
+
+  - name: Nutanix
+    aliases: [nutanix, nunatix]
+    sources: []
+
+  - name: Rubrik
+    aliases: [rubrik, rubirik]
+    sources: []
+
+  - name: Postman
+    aliases: [postman]
+    sources: []
+
+  - name: Cohesity
+    aliases: [cohesity]
+    sources: []
+
+  - name: PhonePe
+    aliases: [phonepe, phone pe]
+    sources: []
+
+  - name: Compass
+    aliases: [compass, urban compass]
+    sources: []
+
+  - name: ShareChat
+    aliases: [sharechat, share chat, moj]
+    sources: []
+
+  - name: Zepto
+    aliases: [zepto]
+    sources: []
+
+  - name: Rippling
+    aliases: [rippling]
+    sources: []
+
+  - name: Arcesium
+    aliases: [arcesium]
+    sources: []
+
+  - name: Indeed
+    aliases: [indeed]
+    sources: []
+
+  - name: Sprinklr
+    aliases: [sprinklr]
+    sources: []
+
+  - name: Zomato
+    aliases: [zomato, eternal]
+    sources: []
+
+# No provider type for these yet - they run Oracle HCM (JPMorgan), SAP
+# SuccessFactors (DP World), or fully in-house sites. Listed so the report
+# names them instead of silently skipping them.
+
+  - name: JPMorgan Chase
+    aliases: [jp morgan, jpmorgan, jpmc, jp morgan chase, j p morgan]
+    sources: []
+
+  - name: D. E. Shaw
+    aliases: [de shaw, deshaw, d e shaw, d.e. shaw]
+    sources: []
+
+  - name: MathWorks
+    aliases: [mathworks, the mathworks, math works]
+    sources: []
+
+  - name: Kotak Mahindra Bank
+    aliases: [kotak, kotak mahindra]
+    sources: []
+
+  - name: DP World
+    aliases: [dp world, dpworld]
+    sources: []

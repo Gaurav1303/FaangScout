@@ -5,11 +5,19 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from pathlib import Path
+
+import yaml
 
 from .check import check_sources
 from .companies.registry import load_registry
-from .models import SearchCriteria
+from .discover import discover, to_registry_yaml
+from .models import ScoredJob, SearchCriteria
+from .report import format_age, render_markdown
 from .scout import scout
+from .seen import SeenStore
+
+DEFAULT_HOURS = 24.0
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -21,7 +29,6 @@ def build_parser() -> argparse.ArgumentParser:
         "--companies",
         "-c",
         nargs="+",
-        required=True,
         metavar="NAME",
         help="Company names (e.g. Stripe Airbnb). Also accepts 'Name:provider:key=value' "
         "for a company not in the registry.",
@@ -30,7 +37,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--hours",
         type=float,
-        default=24.0,
+        default=None,
         help="Only show jobs posted within this many hours (default: 24). Use --hours 48 for 'last 2 days'.",
     )
     parser.add_argument("--limit", type=int, default=None, help="Cap the number of results returned")
@@ -60,14 +67,55 @@ def build_parser() -> argparse.ArgumentParser:
         help="Diagnose reachability instead of searching: for each company, report whether its "
         "career portal responds, how many postings came back, and whether they carry usable dates",
     )
+    parser.add_argument(
+        "--config",
+        metavar="PATH",
+        help="YAML file with companies/role/hours (e.g. scout.yaml). Flags given on the command line win.",
+    )
+    parser.add_argument(
+        "--discover",
+        action="store_true",
+        help="Probe for the job boards of companies that have none configured, and write the hits "
+        "as a registry overrides file (see --out)",
+    )
+    parser.add_argument(
+        "--out",
+        default="discovered.yaml",
+        metavar="PATH",
+        help="Where --discover writes its results (default: discovered.yaml). Feed it back with --companies-file.",
+    )
+    parser.add_argument(
+        "--seen-file",
+        metavar="PATH",
+        help="JSON file of already-reported postings. Only jobs not in it are reported, and they are "
+        "added to it - so a daily run never repeats a job",
+    )
+    parser.add_argument("--markdown", action="store_true", help="Print results as a Markdown table")
+    parser.add_argument(
+        "--comment-out",
+        metavar="PATH",
+        help="Also write a row-capped Markdown version (see --max-rows) sized for a GitHub issue comment",
+    )
+    parser.add_argument("--max-rows", type=int, default=100, help="Row cap for --comment-out (default: 100)")
+    parser.add_argument("--more-link", metavar="URL", help="Where --comment-out points for the rows it cut")
+    parser.add_argument("--json-out", metavar="PATH", help="Also write the full results as JSON to this file")
     parser.add_argument("--json", action="store_true", help="Print machine-readable JSON instead of a text report")
     parser.add_argument("--explain", action="store_true", help="Also list rejected jobs and why they were dropped")
     return parser
 
 
 def main(argv: list[str] | None = None) -> int:
-    args = build_parser().parse_args(argv)
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    try:
+        apply_config(args)
+    except (OSError, ValueError, yaml.YAMLError) as exc:
+        parser.error(f"--config: {exc}")
+    if not args.companies:
+        parser.error("no companies given - pass --companies or a --config file that lists them")
 
+    if args.discover:
+        return _run_discover(args)
     if args.check:
         return _run_check(args)
 
@@ -82,11 +130,115 @@ def main(argv: list[str] | None = None) -> int:
     registry = load_registry(args.companies_file)
     report = scout(criteria, registry=registry, probe_unknown=args.probe)
 
-    if args.json:
-        print(json.dumps(_report_to_dict(report, explain=args.explain), indent=2, default=str))
-        return 0
+    if args.seen_file:
+        store = SeenStore(args.seen_file)
+        new_jobs = store.filter_new([sj.job for sj in report.jobs])
+        report.jobs = [ScoredJob(job=j) for j in new_jobs]
+        store.mark(new_jobs)
+        store.save()
 
-    _print_text_report(report, explain=args.explain)
+    if args.json_out:
+        Path(args.json_out).write_text(
+            json.dumps(_report_to_dict(report, explain=args.explain), indent=2, default=str)
+        )
+
+    new_only = bool(args.seen_file)
+    if args.comment_out:
+        Path(args.comment_out).write_text(
+            render_markdown(report, role=args.role, hours=args.hours, new_only=new_only,
+                            max_rows=args.max_rows, more_link=args.more_link)
+        )
+
+    if args.markdown:
+        print(render_markdown(report, role=args.role, hours=args.hours, new_only=new_only), end="")
+    elif args.json:
+        print(json.dumps(_report_to_dict(report, explain=args.explain), indent=2, default=str))
+    else:
+        _print_text_report(report, explain=args.explain)
+    return 0
+
+
+def apply_config(args: argparse.Namespace) -> None:
+    """Fill unset arguments from ``--config``; anything given on the command line wins.
+
+    Boolean flags can't tell "not given" from "false", so for those the config
+    can only switch a behaviour on, never off.
+    """
+    config: dict = {}
+    if args.config:
+        config = yaml.safe_load(Path(args.config).read_text()) or {}
+        if not isinstance(config, dict):
+            raise ValueError(f"{args.config} must contain a YAML mapping")
+
+    if not args.companies:
+        companies = config.get("companies") or []
+        if isinstance(companies, str):
+            companies = [c.strip() for c in companies.split(",")]
+        args.companies = _dedupe(str(c).strip() for c in companies if str(c).strip())
+    if args.role is None:
+        args.role = config.get("role")
+    if args.hours is None:
+        args.hours = float(config.get("hours", DEFAULT_HOURS))
+    if args.limit is None and config.get("limit") is not None:
+        args.limit = int(config["limit"])
+    for flag in ("include_undated", "semantic"):
+        if config.get(flag):
+            setattr(args, flag, True)
+
+
+def _dedupe(values) -> list[str]:
+    seen: set[str] = set()
+    out: list[str] = []
+    for value in values:
+        key = value.lower()
+        if key not in seen:
+            seen.add(key)
+            out.append(value)
+    return out
+
+
+def _run_discover(args) -> int:
+    registry = load_registry(args.companies_file)
+    results = discover(args.companies, registry)
+    Path(args.out).write_text(to_registry_yaml(results))
+
+    if args.json:
+        print(
+            json.dumps(
+                [
+                    {
+                        "company": r.company,
+                        "found": r.found,
+                        "provider": r.source.provider if r.source else None,
+                        "config": r.source.config if r.source else None,
+                        "total_jobs": r.total_jobs,
+                        "sample_titles": r.sample_titles,
+                        "attempts": [
+                            {"provider": a.provider, "config": a.config, "outcome": a.outcome, "detail": a.detail}
+                            for a in r.attempts
+                        ],
+                    }
+                    for r in results
+                ],
+                indent=2,
+            )
+        )
+    else:
+        if not results:
+            print("Every company already has a configured board - nothing to discover.")
+        for r in results:
+            tried = len(r.attempts)
+            if r.found:
+                print(f"[FOUND] {r.company} -> {r.source.provider} {r.source.config} "
+                      f"({r.total_jobs}+ postings, {tried} probe(s), {r.elapsed_ms}ms)")
+                for title in r.sample_titles:
+                    print(f"      - {title}")
+            else:
+                print(f"[NOT FOUND] {r.company} ({tried} probe(s), {r.elapsed_ms}ms)")
+                for a in r.attempts[-2:]:
+                    print(f"      last tried {a.provider} {a.config}: {a.outcome} {a.detail}")
+        found = sum(r.found for r in results)
+        print(f"\n{found}/{len(results)} discovered; wrote {args.out}")
     return 0
 
 
@@ -177,10 +329,7 @@ def _print_text_report(report, *, explain: bool) -> None:
         print("No matching jobs found.")
     for sj in report.jobs:
         job = sj.job
-        age = ""
-        if job.posted_at:
-            hours = (job.age.total_seconds() / 3600) if job.age else 0
-            age = f" ({hours:.1f}h ago)" if hours < 48 else f" ({hours / 24:.1f}d ago)"
+        age = f" ({format_age(job)})" if job.posted_at else ""
         loc = f" [{job.location_text}]" if job.location_text else ""
         print(f"- {job.company}: {job.title}{loc}{age}\n  {job.url}")
 

@@ -83,6 +83,42 @@ window, a couple of checkboxes) that calls `POST /api/search` and lists
 results. It's intentionally minimal; the interesting logic is all in
 `scout()`, not the UI.
 
+## Run it on GitHub Actions (daily email)
+
+If your own network can reach the career portals, the CLI is all you need.
+Otherwise - or to get a daily email without keeping a machine on - let
+GitHub run it. `.github/workflows/scout.yml` does, on a GitHub-hosted runner:
+
+1. **Discover** a board for every company in `scout.yaml` that has none
+   configured (`--discover`: tries Greenhouse / Lever / Ashby /
+   SmartRecruiters slugs and Workday tenant/site/host combinations from
+   `companies/data/discovery_candidates.yaml`, keeping the first that returns
+   real postings).
+2. **Check** every board's reachability (`--check`, logged, never fails the run).
+3. **Search** and write a Markdown table to the run summary.
+4. **Post only new openings** as a comment on the "FaangScout results" issue,
+   @-mentioning you, which triggers GitHub's email notification. Jobs already
+   reported are remembered in `.faangscout/seen.json`, carried between runs by
+   `actions/cache`, so nothing is emailed twice.
+
+**Set up:**
+
+- Edit `scout.yaml` - your companies, role, and time window.
+- Make the repo private if you don't want your search visible: Actions logs and
+  the results issue show which companies and role you're targeting.
+- The daily run (09:00 IST, `cron: "30 3 * * *"` in UTC) only fires from the
+  default branch, so it starts once the workflow is merged to `main`.
+- Run on demand: **Actions → FaangScout → Run workflow**, optionally
+  overriding the role or hours, or picking `check` / `discover` mode.
+
+Every run uploads `discovered.yaml`, `check.log`, and `results.json` as an
+artifact. When discovery finds a board, check its sample titles in the log
+(the main risk is a same-named company on the same ATS), then move the entry
+into `known_boards.yaml` so later runs skip probing it.
+
+The seen-jobs cache is branch-scoped: jobs reported by on-demand runs on a
+feature branch may be emailed once more by the first scheduled run on `main`.
+
 ## Checking whether a career portal is reachable
 
 A board that returns zero jobs and a board that is blocked, moved, or
@@ -266,7 +302,7 @@ pip install -r requirements-dev.txt
 pytest
 ```
 
-All 98 tests run against mocked HTTP responses (`httpx.MockTransport`) - no
+All 126 tests run against mocked HTTP responses (`httpx.MockTransport`) - no
 network access needed, and none of the numbers in these tests came from a
 live board.
 

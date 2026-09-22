@@ -1,0 +1,38 @@
+# Your search. The GitHub Actions workflow (and `faangscout --config scout.yaml`)
+# reads this file - edit it to change what the daily run looks for.
+
+role: software engineer   # broad: frontend, backend, ML, infra, SDE, ... all match
+hours: 24                 # only postings from the last N hours
+
+companies:
+  - Stripe
+  - Amazon
+  - Microsoft
+  - Adobe
+  - Kotak
+  - Rubrik
+  - Salesforce
+  - Walmart
+  - Intuit
+  - JP Morgan
+  - Apple
+  - Indeed
+  - MathWorks
+  - NVIDIA
+  - Nutanix
+  - PhonePe
+  - Arcesium
+  - Coinbase
+  - D. E. Shaw
+  - Rippling
+  - Sprinklr
+  - Zepto
+  - Zomato
+  - ShareChat
+  - Compass
+  - Airbnb
+  - Cohesity
+  - DP World
+  - Mastercard
+  - Qualcomm
+  - Postman

@@ -1,0 +1,129 @@
+# Runs FaangScout on a GitHub runner, which (unlike some sandboxes) can reach
+# the career portals. Edit scout.yaml to change what it looks for.
+#
+#   - Daily at 09:00 IST: posts NEW openings as a comment on the
+#     "FaangScout results" issue, which emails you.
+#   - On demand: Actions tab -> FaangScout -> Run workflow.
+#   - On push of scout.yaml to feature/firstDraft, so changes run right away.
+#
+# Note: `schedule` only fires from the default branch (main).
+
+name: FaangScout
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "search = find openings, check = reachability only, discover = find boards only"
+        type: choice
+        options: [search, check, discover]
+        default: search
+      role:
+        description: "Override the role in scout.yaml (leave blank to use scout.yaml)"
+        required: false
+      hours:
+        description: "Override the time window in hours (leave blank to use scout.yaml)"
+        required: false
+  push:
+    branches: [feature/firstDraft]
+    paths: [scout.yaml, .github/workflows/scout.yml]
+  schedule:
+    - cron: "30 3 * * *"
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: faangscout
+  cancel-in-progress: false
+
+jobs:
+  scout:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      MODE: ${{ inputs.mode || 'search' }}
+      ROLE: ${{ inputs.role }}
+      HOURS: ${{ inputs.hours }}
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install
+        run: pip install -e .
+
+      # Companies with no confirmed board get probed every run, so a board
+      # that moves ATS is picked up without a code change.
+      - name: Discover boards
+        run: faangscout --config scout.yaml --discover --out discovered.yaml | tee discover.log
+
+      - name: Reachability check
+        if: env.MODE != 'discover'
+        continue-on-error: true
+        run: faangscout --config scout.yaml --companies-file discovered.yaml --check | tee check.log
+
+      - name: Restore already-reported jobs
+        if: env.MODE == 'search'
+        uses: actions/cache/restore@v4
+        with:
+          path: .faangscout/seen.json
+          key: faangscout-seen-${{ github.run_id }}
+          restore-keys: faangscout-seen-
+
+      - name: Search
+        if: env.MODE == 'search'
+        run: |
+          args=(--config scout.yaml --companies-file discovered.yaml
+                --seen-file .faangscout/seen.json --json-out results.json
+                --markdown --comment-out comment.md --more-link "$RUN_URL")
+          if [ -n "$ROLE" ]; then args+=(--role "$ROLE"); fi
+          if [ -n "$HOURS" ]; then args+=(--hours "$HOURS"); fi
+          faangscout "${args[@]}" > results.md
+          cat results.md
+          cat results.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Save already-reported jobs
+        if: env.MODE == 'search'
+        uses: actions/cache/save@v4
+        with:
+          path: .faangscout/seen.json
+          key: faangscout-seen-${{ github.run_id }}
+
+      - name: Post new openings to the results issue
+        if: env.MODE == 'search'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          new=$(python -c "import json; print(len(json.load(open('results.json'))['jobs']))")
+          if [ "$new" -eq 0 ]; then
+            echo "No new openings - nothing to post."
+            exit 0
+          fi
+          issue=$(gh issue list --state open --search '"FaangScout results" in:title' \
+                    --json number,title --jq '[.[] | select(.title == "FaangScout results")][0].number // empty')
+          if [ -z "$issue" ]; then
+            url=$(gh issue create --title "FaangScout results" \
+                    --body "New openings from each FaangScout run are posted here as comments.")
+            issue="${url##*/}"
+          fi
+          { echo "@$OWNER"; echo; cat comment.md; echo; echo "[Run details]($RUN_URL)"; } > body.md
+          gh issue comment "$issue" --body-file body.md
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: faangscout-${{ github.run_id }}
+          path: |
+            discovered.yaml
+            discover.log
+            check.log
+            results.md
+            results.json
+          if-no-files-found: ignore
