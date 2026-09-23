@@ -12,17 +12,30 @@ in the public careers URL, e.g. for
 site is ``en-US/Amazon`` (or just ``Amazon`` - Workday is lenient here).
 
 Workday exposes ``postedOn`` as relative prose ("Posted Today", "Posted 30+
-Days Ago"), so results are ``Precision.APPROXIMATE`` and anything past the
-"30+" cutoff has no usable date at all.
+Days Ago") - a day, not a time - so results are ``Precision.DATE_ONLY``.
 """
 
 from __future__ import annotations
+
+from datetime import datetime
 
 from ..models import FetchHints, Job, Precision
 from ..normalize import detect_remote, parse_relative
 from .base import Provider, ProviderError, register
 
 _PAGE_SIZE = 20
+
+
+def _posted_day(text: str) -> datetime | None:
+    """ "Posted Today" -> midnight today (UTC); "Posted 3 Days Ago" -> 3 days back.
+
+    Workday only says which day, so the timestamp is floored to midnight and
+    marked DATE_ONLY - otherwise "Posted Today" reads as "posted <1h ago".
+    """
+    posted = parse_relative(text)
+    if posted is None:
+        return None
+    return posted.replace(hour=0, minute=0, second=0, microsecond=0)
 
 
 @register("workday")
@@ -55,7 +68,7 @@ class WorkdayProvider(Provider):
 
             postings = payload.get("jobPostings", [])
             total = payload.get("total", offset + len(postings))
-            jobs.extend(self._to_job(entry, company=company, host=host) for entry in postings)
+            jobs.extend(self._to_job(entry, company=company, host=host, site=site) for entry in postings)
             offset += len(postings)
             if not postings or offset >= total or offset >= hints.max_results:
                 break
@@ -63,9 +76,11 @@ class WorkdayProvider(Provider):
         return jobs
 
     @staticmethod
-    def _to_job(entry: dict, *, company: str, host: str) -> Job:
+    def _to_job(entry: dict, *, company: str, host: str, site: str) -> Job:
+        # externalPath is site-relative ("/job/Pune-India/..."); the public
+        # page lives under the site ("/CorporateCareers/job/Pune-India/...").
         path = entry.get("externalPath", "")
-        url = f"https://{host}{path}" if path else ""
+        url = f"https://{host}/{site.strip('/')}{path}" if path else f"https://{host}/{site.strip('/')}"
         location = entry.get("locationsText") or entry.get("locations", "")
 
         # locationsText is a single free-form string ("Seattle, WA" or
@@ -80,8 +95,8 @@ class WorkdayProvider(Provider):
             url=url,
             source="workday",
             external_id=entry.get("bulletFields", [None])[0] or path,
-            posted_at=parse_relative(entry.get("postedOn", "")),
-            precision=Precision.APPROXIMATE,
+            posted_at=_posted_day(entry.get("postedOn", "")),
+            precision=Precision.DATE_ONLY,
             locations=locations,
             remote=detect_remote(str(location)),
             raw=entry,

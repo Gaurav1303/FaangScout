@@ -1,28 +1,12 @@
 # Diagnostic targets for scripts/probe.py - read by the "Probe" workflow step.
 # Delete this file once the findings are applied; the step is skipped without it.
 
-# JPMorgan: does the Oracle HCM provider's request return requisitions?
-- {name: jpmc oracle shape, kind: shape, depth: 4, url: "https://jpmc.fa.oraclecloud.com/hcmRestApi/resources/latest/recruitingCEJobRequisitions?onlyData=true&expand=requisitionList.secondaryLocations&finder=findReqs%3BsiteNumber%3DCX_1001%2CfacetsList%3DLOCATIONS%3BWORK_LOCATIONS%3BWORKPLACE_TYPES%3BTITLES%3BCATEGORIES%3BORGANIZATIONS%3BPOSTING_DATES%3BFLEX_FIELDS%2Climit%3D25%2Coffset%3D0%2CsortBy%3DPOSTING_DATES_DESC%2Ckeyword%3D%22software+engineer%22"}
-- {name: jpmc oracle raw, url: "https://jpmc.fa.oraclecloud.com/hcmRestApi/resources/latest/recruitingCEJobRequisitions?onlyData=true&expand=requisitionList.secondaryLocations&finder=findReqs%3BsiteNumber%3DCX_1001%2CfacetsList%3DLOCATIONS%3BWORK_LOCATIONS%3BWORKPLACE_TYPES%3BTITLES%3BCATEGORIES%3BORGANIZATIONS%3BPOSTING_DATES%3BFLEX_FIELDS%2Climit%3D25%2Coffset%3D0%2CsortBy%3DPOSTING_DATES_DESC%2Ckeyword%3D%22software+engineer%22", limit: 1200}
-
-# Eightfold pagination: is there a total count, and how big is a page?
-- {name: ms pcsx shape, kind: shape, depth: 2, url: "https://apply.careers.microsoft.com/api/pcsx/search?domain=microsoft.com&query=software%20engineer&location=&start=0&sort_by=timestamp"}
-
-# JavaScript-app careers pages: which API URLs does the page source mention?
-- {name: Walmart, kind: fingerprint, url: "https://careers.walmart.com/us/en/home"}
-- {name: Walmart results, kind: fingerprint, url: "https://careers.walmart.com/us/en/results?q=software%20engineer"}
-- {name: Intuit, kind: fingerprint, url: "https://jobs.intuit.com/search-jobs/software%20engineer"}
-- {name: PhonePe, kind: fingerprint, url: "https://www.phonepe.com/careers/job-openings/"}
-- {name: ShareChat, kind: fingerprint, url: "https://sharechat.com/careers"}
-- {name: Postman, kind: fingerprint, url: "https://www.postman.com/company/careers/open-positions/"}
-- {name: D. E. Shaw, kind: fingerprint, url: "https://www.deshaw.com/careers/choose-your-path"}
-- {name: Rippling open roles, kind: fingerprint, url: "https://www.rippling.com/careers/open-roles"}
-- {name: Eternal (Zomato), kind: fingerprint, url: "https://www.eternal.com/careers/"}
-- {name: Apple search page, kind: fingerprint, url: "https://jobs.apple.com/en-in/search?search=software%20engineer"}
-- {name: Apple role search api, method: POST, url: "https://jobs.apple.com/api/role/search", json: {query: "software engineer", filters: {}, page: 1, locale: en-us, sort: newest}, limit: 600}
-
-# Companies whose first guess didn't resolve.
-- {name: DP World, kind: fingerprint, url: "https://www.dpworld.com/careers"}
-- {name: Kotak, kind: fingerprint, url: "https://www.kotak.com/en/careers.html"}
-- {name: Nutanix jobvite, url: "https://jobs.jobvite.com/nutanix/jobs", limit: 500}
-- {name: Zepto, kind: fingerprint, url: "https://www.zepto.com/careers"}
+# Do the job links in the report open real postings? One per provider, taken
+# from run 35821283844's results. Workday twice: the old (site-less) link and
+# the fixed one.
+- {name: workday old link, kind: link, url: "https://mastercard.wd1.myworkdayjobs.com/job/Pune-India/Software-Engineer-II_R-289618"}
+- {name: workday fixed link, kind: link, url: "https://mastercard.wd1.myworkdayjobs.com/CorporateCareers/job/Pune-India/Software-Engineer-II_R-289618"}
+- {name: eightfold link, kind: link, url: "https://apply.careers.microsoft.com/careers/job/1970393556981791"}
+- {name: oracle link, kind: link, url: "https://jpmc.fa.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1001/job/210785193"}
+- {name: amazon link, kind: link, url: "https://www.amazon.jobs/en/jobs/10557199/software-development-engineer-ai-trust-innovation"}
+- {name: greenhouse link, kind: link, url: "https://www.compass.com/careers?gh_jid=7800230"}

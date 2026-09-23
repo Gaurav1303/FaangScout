@@ -12,6 +12,8 @@ Two kinds of target:
                matching URL fragments - usually enough to configure a board.
                When there are none (a JavaScript app), the API-looking URLs
                in the page source instead.
+  link         does a job URL we generate open a real page: status, final
+               URL after redirects, and the page title
   shape        a JSON response's structure: keys, types, list lengths -
                for finding pagination and total-count fields
 """
@@ -123,6 +125,17 @@ def probe_fingerprint(client: httpx.Client, target: dict) -> None:
             print(f"  api? {url}")
 
 
+def probe_link(client: httpx.Client, target: dict) -> None:
+    try:
+        r = client.get(target["url"])
+    except httpx.HTTPError as exc:
+        print(f"  ERROR {exc!r}")
+        return
+    title = squash("".join(re.findall(r"<title[^>]*>(.*?)</title>", r.text, re.S | re.I)[:1]), 150)
+    print(f"  {r.status_code} final={r.url}")
+    print(f"  title={title!r}")
+
+
 def probe_shape(client: httpx.Client, target: dict) -> None:
     method = target.get("method", "GET").upper()
     try:
@@ -140,7 +153,7 @@ def main(path: str) -> int:
         for target in targets:
             kind = target.get("kind", "raw")
             print(f"=== [{kind}] {target.get('name', '')} {target['url']}")
-            {"fingerprint": probe_fingerprint, "shape": probe_shape}.get(kind, probe_raw)(client, target)
+            {"fingerprint": probe_fingerprint, "shape": probe_shape, "link": probe_link}.get(kind, probe_raw)(client, target)
     return 0
 
 

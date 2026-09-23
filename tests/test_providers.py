@@ -194,8 +194,9 @@ class TestWorkday:
 
         assert len(jobs) == 1
         job = jobs[0]
-        assert job.url == "https://acme.wd1.myworkdayjobs.com/job/SRE/1"
-        assert job.precision == Precision.APPROXIMATE
+        assert job.url == "https://acme.wd1.myworkdayjobs.com/External/job/SRE/1"
+        assert job.precision == Precision.DATE_ONLY
+        assert (job.posted_at.hour, job.posted_at.minute) == (0, 0)  # a day, not "<1h ago"
         assert job.locations == ("Seattle, WA",)
 
     def test_missing_config_raises(self):
