@@ -51,18 +51,35 @@ class WorkdayProvider(Provider):
         url = f"https://{host}/wday/cxs/{tenant}/{site}/jobs"
         company = config.get("company_name", tenant)
 
+        # Neither Workday query is complete on its own - both seen live:
+        # - A keyword search is relevance-ordered: NVIDIA's first page for
+        #   "software engineer" was all 14-30+ days old (of 1,695), so its new
+        #   postings sat beyond any page cap.
+        # - The unfiltered list is newest-first on NVIDIA, but not reliably
+        #   elsewhere: it missed today's "Software Engineer II" postings at
+        #   Mastercard and a dozen at Salesforce that the keyword search found.
+        # So run both and merge. The role filter decides what matches either way.
+        passes = [("", True)]
+        if hints.role_query:
+            passes.insert(0, (hints.role_query, False))
+
+        merged: dict[str, Job] = {}
+        for search_text, stop_at_window in passes:
+            for job in self._collect(url, search_text, hints, stop_at_window=stop_at_window,
+                                     company=company, host=host, site=site):
+                merged.setdefault(job.external_id or job.url, job)
+        return list(merged.values())
+
+    def _collect(self, url: str, search_text: str, hints: FetchHints, *, stop_at_window: bool,
+                 company: str, host: str, site: str) -> list[Job]:
         jobs: list[Job] = []
         offset = 0
+        stale_pages = 0
         while True:
-            # No searchText on purpose: with a keyword Workday orders by
-            # relevance (NVIDIA's first page for "software engineer" was all
-            # 14-30+ days old, out of 1,695), so today's postings can sit past
-            # any page cap. Without one it lists newest first, and the role
-            # filter does the matching.
-            body = {"appliedFacets": {}, "limit": _PAGE_SIZE, "offset": offset, "searchText": ""}
+            body = {"appliedFacets": {}, "limit": _PAGE_SIZE, "offset": offset, "searchText": search_text}
             payload = self._request_json("POST", url, json=body)
             if not isinstance(payload, dict):
-                raise ProviderError(f"workday: {tenant}/{site} -> unexpected response (not a JSON object)")
+                raise ProviderError(f"workday: {url} -> unexpected response (not a JSON object)")
 
             postings = payload.get("jobPostings", [])
             total = payload.get("total", offset + len(postings))
@@ -71,13 +88,14 @@ class WorkdayProvider(Provider):
             offset += len(postings)
             if not postings or offset >= total or offset >= hints.max_results:
                 break
-            # Newest first: once a whole page is older than the window (with
-            # a day's grace, since these are day-only dates), stop paging.
-            if hints.since and all(
-                j.posted_at is not None and j.posted_at + _DAY < hints.since for j in page
-            ):
-                break
-
+            if stop_at_window and hints.since:
+                # Loosely newest-first: stop after two consecutive pages that
+                # are entirely older than the window (a day's grace, since
+                # Workday dates are day-only), not at the first one.
+                old = all(j.posted_at is not None and j.posted_at + _DAY < hints.since for j in page)
+                stale_pages = stale_pages + 1 if old else 0
+                if stale_pages >= 2:
+                    break
         return jobs
 
     @staticmethod

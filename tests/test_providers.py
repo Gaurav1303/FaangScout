@@ -486,51 +486,65 @@ class TestRetries:
 
 
 class TestWorkdayOrdering:
-    """Keyword search is relevance-ordered on Workday - fetch the date-ordered list instead."""
+    """Both Workday queries miss postings on their own - the provider merges them."""
 
-    def _posting(self, i, posted):
-        return {"title": f"Software Engineer {i}", "externalPath": f"/job/X/{i}", "postedOn": posted}
+    CONFIG = {"host": "n.wd5.myworkdayjobs.com", "tenant": "n", "site": "S"}
 
-    def test_never_sends_search_text(self):
-        bodies = []
+    def _posting(self, key, posted):
+        return {"title": f"Software Engineer {key}", "externalPath": f"/job/X/{key}", "postedOn": posted,
+                "bulletFields": [f"R-{key}"]}
 
-        def handler(request):
-            import json as _json
-            bodies.append(_json.loads(request.content))
-            return httpx.Response(200, json={"total": 0, "jobPostings": []})
-
-        WorkdayProvider(client=client_with(handler)).fetch(
-            {"host": "n.wd5.myworkdayjobs.com", "tenant": "n", "site": "S"}, FetchHints(role_query="software engineer"))
-        assert bodies[0]["searchText"] == ""
-
-    def test_stops_paging_once_a_page_predates_the_window(self):
-        offsets = []
+    def _handler(self, keyword_pages, listing_pages, calls):
+        import json as _json
 
         def handler(request):
-            import json as _json
-            offset = _json.loads(request.content)["offset"]
-            offsets.append(offset)
-            posted = "Posted Today" if offset == 0 else "Posted 30+ Days Ago"
-            return httpx.Response(200, json={"total": 2000, "jobPostings": [self._posting(offset + i, posted) for i in range(20)]})
+            body = _json.loads(request.content)
+            calls.append((body["searchText"], body["offset"]))
+            pages = keyword_pages if body["searchText"] else listing_pages
+            page = pages.get(body["offset"], [])
+            return httpx.Response(200, json={"total": 2000, "jobPostings": page})
 
+        return handler
+
+    def test_merges_keyword_and_listing_results_without_duplicates(self):
+        calls = []
+        keyword = {0: [self._posting("mastercard-pune", "Posted Today"), self._posting("both", "Posted Today")]}
+        listing = {0: [self._posting("nvidia-new", "Posted Today"), self._posting("both", "Posted Today")]}
+        jobs = WorkdayProvider(client=client_with(self._handler(keyword, listing, calls))).fetch(
+            self.CONFIG, FetchHints(role_query="software engineer"))
+        assert sorted(j.external_id for j in jobs) == ["R-both", "R-mastercard-pune", "R-nvidia-new"]
+        assert {text for text, _ in calls} == {"software engineer", ""}
+
+    def test_without_role_only_the_listing_is_read(self):
+        calls = []
+        WorkdayProvider(client=client_with(self._handler({}, {}, calls))).fetch(self.CONFIG, HINTS)
+        assert calls == [("", 0)]
+
+    def _paged(self, pattern):
+        return {i * 20: [self._posting(f"{i}-{k}", posted) for k in range(20)] for i, posted in enumerate(pattern)}
+
+    def test_listing_stops_after_two_consecutive_old_pages(self):
+        calls = []
+        old = "Posted 30+ Days Ago"
+        listing = self._paged(["Posted Today", old, old, "Posted Today", "Posted Today"])
         since = datetime.now(UTC) - timedelta(hours=24)
-        jobs = WorkdayProvider(client=client_with(handler)).fetch(
-            {"host": "n.wd5.myworkdayjobs.com", "tenant": "n", "site": "S"}, FetchHints(since=since, max_results=400))
-        assert offsets == [0, 20]  # page 2 is all old -> stop, not 20 pages
-        assert len(jobs) == 40
+        WorkdayProvider(client=client_with(self._handler({}, listing, calls))).fetch(self.CONFIG, FetchHints(since=since))
+        assert [o for _, o in calls] == [0, 20, 40]
 
-    def test_yesterday_page_does_not_stop_paging(self):
-        """'Posted Yesterday' is inside a 24h window under the day-only grace."""
-        offsets = []
-
-        def handler(request):
-            import json as _json
-            offset = _json.loads(request.content)["offset"]
-            offsets.append(offset)
-            posted = {0: "Posted Today", 20: "Posted Yesterday"}.get(offset, "Posted 30+ Days Ago")
-            return httpx.Response(200, json={"total": 2000, "jobPostings": [self._posting(offset + i, posted) for i in range(20)]})
-
+    def test_one_stale_page_does_not_stop_the_listing(self):
+        """Loose ordering: an old page between new ones must not end paging."""
+        calls = []
+        old = "Posted 30+ Days Ago"
+        listing = self._paged(["Posted Today", old, "Posted Today", old, old])
         since = datetime.now(UTC) - timedelta(hours=24)
-        WorkdayProvider(client=client_with(handler)).fetch(
-            {"host": "n.wd5.myworkdayjobs.com", "tenant": "n", "site": "S"}, FetchHints(since=since))
-        assert offsets == [0, 20, 40]
+        jobs = WorkdayProvider(client=client_with(self._handler({}, listing, calls))).fetch(
+            self.CONFIG, FetchHints(since=since))
+        assert [o for _, o in calls] == [0, 20, 40, 60, 80]
+        assert any(j.external_id.startswith("R-2-") for j in jobs)  # the page after the stale one
+
+    def test_yesterday_counts_as_inside_a_24h_window(self):
+        calls = []
+        listing = self._paged(["Posted Yesterday", "Posted Yesterday", "Posted Yesterday"])
+        since = datetime.now(UTC) - timedelta(hours=24)
+        WorkdayProvider(client=client_with(self._handler({}, listing, calls))).fetch(self.CONFIG, FetchHints(since=since))
+        assert [o for _, o in calls] == [0, 20, 40, 60]  # never stale; ends on the empty page
