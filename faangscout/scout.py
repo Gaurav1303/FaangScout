@@ -60,6 +60,7 @@ def scout(
         resolved = resolve_companies(criteria.companies, registry, probe=probe_unknown, client=resolve_client)
 
     report.unresolved = [c.query for c in resolved if not c.resolved]
+    report.companies = list(resolved)
 
     all_sources = [(company, source) for company in resolved for source in company.sources]
     if not all_sources:

@@ -1,0 +1,102 @@
+# What each company calls its engineering levels, mapped to the common
+# SDE-1/2/3 scale, with the years of experience the level usually means.
+#
+# Used when a posting states no years itself (stated years always win): the
+# title is matched against the company's ladder, top to bottom, and the first
+# match decides. Companies not listed fall back to the generic reading of
+# titles in faangscout/experience.py ("Senior" -> 5+, "Engineer II" -> 2-6).
+#
+# Each level: match (case-insensitive regex on the title), name (shown in the
+# report), sde (1 = entry ... 5 = principal), years ([min, max], max may be
+# null for open-ended).
+#
+# Sources: LeetCode Discuss offer/interview threads and levels.fyi (India),
+# checked September 2026 - e.g. Salesforce MTS ~ Walmart SE III ~ Adobe MTS-2
+# ~ Nutanix MTS-3 ~ SDE-2. Ranges are approximate; fix them here as you learn.
+
+companies:
+  Salesforce:
+    - {match: '\b(?:amts|associate member of technical staff)\b', name: AMTS, sde: 1, years: [0, 2]}
+    - {match: '\b(?:pmts|principal member of technical staff)\b|\bprincipal\b', name: PMTS, sde: 5, years: [12, null]}
+    - {match: '\b(?:lmts|lead member of technical staff)\b|\blead\b', name: LMTS, sde: 4, years: [8, null]}
+    - {match: '\b(?:smts|senior member of technical staff)\b|\b(?:senior|sr\.?)\s', name: SMTS, sde: 3, years: [4, 8]}
+    - {match: '\b(?:mts|member of technical staff)\b', name: MTS, sde: 2, years: [1, 4]}
+
+  Walmart:
+    - {match: '\bprincipal\b|\bdistinguished\b', name: Principal, sde: 5, years: [10, null]}
+    - {match: '\bstaff\b', name: Staff, sde: 4, years: [8, null]}
+    - {match: '\bsoftware engineer\s*(?:iii|3)\b', name: SE III, sde: 2, years: [2, 5]}
+    - {match: '\bsoftware engineer\s*(?:ii|2)\b', name: SE II, sde: 1, years: [0, 2]}
+    - {match: '\b(?:senior|sr\.?)\s', name: Senior SE, sde: 3, years: [5, null]}
+
+  Adobe:
+    - {match: '\b(?:senior|sr\.?)\s+computer scientist\b', name: Senior Computer Scientist, sde: 4, years: [7, null]}
+    - {match: '\bcomputer scientist\b', name: Computer Scientist, sde: 3, years: [4, null]}
+    - {match: '\bprincipal\b', name: Principal Scientist, sde: 5, years: [10, null]}
+    - {match: '\b(?:mts|member of technical staff)\s*[-(]?\s*(?:ii|2)\b', name: MTS-2, sde: 2, years: [2, 5]}
+    - {match: '\b(?:mts|member of technical staff)\s*[-(]?\s*(?:i|1)\b', name: MTS-1, sde: 1, years: [0, 2]}
+
+  Nutanix:
+    - {match: '\b(?:mts|member of technical staff)\s*[-(]?\s*[5-9]\b', name: MTS-5+, sde: 4, years: [8, null]}
+    - {match: '\b(?:mts|member of technical staff)\s*[-(]?\s*4\b', name: MTS-4, sde: 3, years: [5, null]}
+    - {match: '\b(?:mts|member of technical staff)\s*[-(]?\s*3\b', name: MTS-3, sde: 2, years: [2, 5]}
+    - {match: '\b(?:mts|member of technical staff)\s*[-(]?\s*[12]\b', name: MTS-1/2, sde: 1, years: [0, 2]}
+
+  # Titles read "Software Engineer 3 (MTS 3)". Live MTS-4 postings ask for 8+.
+  Cohesity:
+    - {match: '\b(?:mts|member of technical staff|engineer)\s*[-(]?\s*[5-9]\b', name: MTS-5+, sde: 4, years: [10, null]}
+    - {match: '\b(?:mts|member of technical staff|engineer)\s*[-(]?\s*4\b', name: MTS-4, sde: 3, years: [6, null]}
+    - {match: '\b(?:mts|member of technical staff|engineer)\s*[-(]?\s*3\b', name: MTS-3, sde: 2, years: [2, 5]}
+    - {match: '\b(?:mts|member of technical staff|engineer)\s*[-(]?\s*[12]\b', name: MTS-1/2, sde: 1, years: [0, 2]}
+
+  Sprinklr:
+    - {match: '\b(?:lead|staff|principal)\b', name: Lead Product Engineer, sde: 3, years: [5, null]}
+    - {match: '\b(?:senior|sr\.?)\s+(?:product engineer|software development engineer|sde)\b', name: Senior Product Engineer, sde: 2, years: [2, 5]}
+    - {match: '\bproduct engineer\b', name: Product Engineer, sde: 1, years: [0, 2]}
+
+  Qualcomm:
+    - {match: '\bsenior staff\b|\bprincipal\b', name: Senior Staff, sde: 4, years: [8, null]}
+    - {match: '\bstaff\b', name: Staff Engineer, sde: 3, years: [5, null]}
+    - {match: '\blead\b', name: Lead Engineer, sde: 3, years: [4, null]}
+    - {match: '\b(?:senior|sr\.?)(?:\s|\b)', name: Senior Engineer, sde: 2, years: [2, 6]}
+    - {match: '\bengineer\b', name: Engineer, sde: 1, years: [0, 3]}
+
+  NVIDIA:
+    - {match: '\bprincipal\b|\bdistinguished\b|\barchitect\b', name: Principal, sde: 4, years: [10, null]}
+    - {match: '\b(?:senior|sr\.?)\s', name: Senior Engineer, sde: 2, years: [3, 8]}
+    - {match: '\bengineer\b', name: Engineer, sde: 1, years: [0, 3]}
+
+  Mastercard:
+    - {match: '\bprincipal\b|\bdistinguished\b', name: Principal, sde: 4, years: [10, null]}
+    - {match: '\blead\b', name: Lead SE, sde: 3, years: [6, null]}
+    - {match: '\b(?:senior|sr\.?)\s', name: Senior SE, sde: 2, years: [3, 6]}
+    - {match: '\bengineer\s*(?:ii|2)\b', name: SE II, sde: 2, years: [2, 5]}
+    - {match: '\bengineer\s*(?:i|1)\b', name: SE I, sde: 1, years: [0, 2]}
+
+  JPMorgan Chase:
+    - {match: '\bprincipal\b|\bdistinguished\b', name: Principal, sde: 5, years: [10, null]}
+    - {match: '\b(?:senior|sr\.?)\s+lead\b', name: Senior Lead, sde: 4, years: [7, null]}
+    - {match: '\blead\b', name: Lead SE, sde: 3, years: [5, null]}
+    - {match: '\bengineer\s*(?:iii|3)\b', name: SE III, sde: 2, years: [3, null]}
+    - {match: '\bengineer\s*(?:ii|2)\b', name: SE II, sde: 1, years: [1, 3]}
+
+  Microsoft:
+    - {match: '\bprincipal\b|\bpartner\b|\bdistinguished\b', name: Principal, sde: 4, years: [8, null]}
+    - {match: '\b(?:senior|sr\.?)\s', name: Senior SE, sde: 3, years: [4, null]}
+    - {match: '\bengineer\s*(?:ii|2)\b', name: SE II, sde: 2, years: [2, 5]}
+    - {match: '\bsoftware engineer\b(?!\s*(?:i|ii|iii|\d))', name: SE, sde: 1, years: [0, 2]}
+
+  Amazon:
+    - {match: '\b(?:sde|software dev(?:elopment)? engineer)\s*(?:iii|3)\b', name: SDE III, sde: 3, years: [5, null]}
+    - {match: '\b(?:sde|software dev(?:elopment)? engineer)\s*(?:ii|2)\b', name: SDE II, sde: 2, years: [3, null]}
+    - {match: '\b(?:sde|software dev(?:elopment)? engineer)\b(?!\s*(?:ii|iii|2|3)\b)', name: SDE I, sde: 1, years: [0, 3]}
+
+  Intuit:
+    - {match: '\bstaff\b|\bprincipal\b|\bdistinguished\b', name: Staff SE, sde: 4, years: [8, null]}
+    - {match: '\b(?:senior|sr\.?)\s', name: Senior SE, sde: 3, years: [5, null]}
+    - {match: '\bengineer\s*(?:ii|2)\b', name: SE 2, sde: 2, years: [2, 5]}
+    - {match: '\bengineer\s*(?:i|1)\b', name: SE 1, sde: 1, years: [0, 2]}
+
+  D. E. Shaw:
+    - {match: '\b(?:senior member technical|smt)\b', name: Senior Member Technical, sde: 2, years: [3, 5]}
+    - {match: '\bmember technical\b', name: Member Technical, sde: 1, years: [0, 3]}

@@ -13,7 +13,7 @@ from .check import check_sources
 from .companies.registry import load_registry
 from .discover import discover, to_registry_yaml
 from .first_seen import FirstSeenStore
-from .models import ScoredJob, SearchCriteria
+from .models import Rejection, ScoredJob, SearchCriteria
 from .report import format_age, render_markdown
 from .scout import scout
 from .seen import SeenStore
@@ -157,6 +157,13 @@ def main(argv: list[str] | None = None) -> int:
     if args.seen_file:
         store = SeenStore(args.seen_file)
         new_jobs = store.filter_new([sj.job for sj in report.jobs])
+        new_keys = {id(j) for j in new_jobs}
+        # Counted, not silently dropped, so the per-company summary can say
+        # "already sent" rather than implying nothing matched.
+        report.rejections += [
+            Rejection(sj.job, "already_sent", "reported in an earlier run")
+            for sj in report.jobs if id(sj.job) not in new_keys
+        ]
         report.jobs = [ScoredJob(job=j) for j in new_jobs]
         store.mark(new_jobs)
         store.save()
@@ -345,6 +352,7 @@ def _report_to_dict(report, *, explain: bool) -> dict:
                         "max_years": sj.job.experience.max_years,
                         "basis": sj.job.experience.basis,
                         "evidence": sj.job.experience.evidence,
+                        "sde": sj.job.experience.sde,
                     }
                     if sj.job.experience
                     else None
@@ -374,7 +382,7 @@ def _print_text_report(report, *, explain: bool) -> None:
         job = sj.job
         age = f" ({format_age(job)})" if job.posted_at else ""
         loc = f" [{job.location_text}]" if job.location_text else ""
-        exp = f" <{job.experience.label()}>" if job.experience else ""
+        exp = f" <{job.experience.display()}>" if job.experience else ""
         print(f"- {job.company}: {job.title}{loc}{age}{exp}\n  {job.url}")
 
     print(f"\n{len(report.jobs)} job(s) across {len(report.sources)} board(s).")

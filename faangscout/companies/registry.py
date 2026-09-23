@@ -33,6 +33,9 @@ class RegistryEntry:
     name: str
     aliases: tuple[str, ...]
     sources: tuple[CompanySource, ...]
+    #: Why a company has no source (shown in the report), e.g. "careers site
+    #: blocks scripted access".
+    note: str = ""
 
     @property
     def resolved(self) -> bool:
@@ -112,6 +115,7 @@ def _entry_from_dict(data: dict) -> RegistryEntry:
         name=data["name"],
         aliases=tuple(data.get("aliases", [])),
         sources=sources,
+        note=str(data.get("note") or ""),
     )
 
 

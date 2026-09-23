@@ -113,10 +113,36 @@ is read from the description:
   where it starts, keeping the bachelor's requirement before it, so a
   **bachelor's degree is assumed**.
 
-When the description states nothing, the title's level gives a rough range
-("Engineer II" ~2-6 yrs, "Senior"/"Lead" 5+, "Staff" 8+), labelled "(title)".
-When neither does, the job is **kept** and marked "not stated" - dropping it
-would hide real matches. The report's Experience column shows which applies.
+When the description states nothing, the title's level gives a rough range.
+It first checks the company's own ladder, since companies name the same level
+differently:
+
+| Company title | SDE level |
+|---|---|
+| Salesforce MTS, Walmart Software Engineer III, Adobe MTS-2, Nutanix/Cohesity MTS-3 | SDE-2 |
+| Sprinklr Senior Product Engineer, Qualcomm Senior Engineer, Mastercard Senior Software Engineer | SDE-2 |
+
+Those ladders are in `faangscout/companies/data/levels.yaml`, taken from
+LeetCode Discuss and levels.fyi. For companies not listed, it falls back to a
+generic reading ("Engineer II" ~2-6 yrs, "Senior"/"Lead" 5+, "Staff" 8+).
+
+Years stated in the posting always decide. When none are stated, a title at
+the wanted SDE level on its company's ladder also passes: SDE-2 by default,
+or set `experience: {years: 3, sde: 2}` in `scout.yaml`. The Experience column
+shows the level, for example "~1–4 yrs (Salesforce MTS) · ≈ SDE-2".
+
+With no stated years and no recognisable level, the job is **kept** and
+marked "not stated". Dropping it would hide real matches.
+
+To add or correct a company's levels, edit `levels.yaml`. Each level is a
+title regex, a name, an SDE number, and a range of years; the first match
+wins. No code change is needed.
+
+The daily email ends with a **No match today** line for every company that
+had nothing. It names the stage where that company's jobs dropped out: no new
+postings, none in India, none fitting 3 yrs (with the years they needed),
+already sent, board unreachable, or not covered and why. That way every
+company you asked for is accounted for.
 
 Descriptions come free with Greenhouse, Lever, Ashby and Amazon listings.
 Workday, Eightfold and Oracle need one extra request per job, so those are

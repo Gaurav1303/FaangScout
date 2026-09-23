@@ -126,6 +126,7 @@ def resolve_companies(
                     name=entry.name if entry else query,
                     sources=(),
                     origin="unresolved",
+                    note=entry.note if entry else "",
                 )
             )
         return resolved
