@@ -15,14 +15,18 @@ Read from the description first, falling back to the level in the title:
   requirement this way.
 - Numbers over 15 years are ignored ("serving customers for 25 years").
 
-With nothing stated, the title's level gives a rough range: "Engineer II"
-~2-6 years, "Senior"/"Lead" 5+, "Staff" 8+, "Principal" 10+. Neither -> unknown.
+With nothing stated, the title's level gives a rough range - first on the
+company's own ladder (``companies/data/levels.yaml``: "Salesforce MTS" ~1-4
+years, "Qualcomm Senior Engineer" ~2-6), then generically: "Engineer II"
+~2-6 years, "Senior"/"Lead" 5+, "Staff" 8+, "Principal" 10+. Neither ->
+unknown. The ladder's SDE level is attached either way, for the report.
 """
 
 from __future__ import annotations
 
 import re
 
+from .companies.levels import company_level
 from .models import ExperienceReq, Job
 
 _WORDS = {
@@ -80,6 +84,8 @@ _NUMBERED_LEVEL = re.compile(
     r"\b(?:engineer|developer|sde|swe|mts|member of technical staff|dev)\s*[-,]?\s*\(?\s*(iii|ii|iv|i|v|[1-5])\b",
     re.I,
 )
+#: Generic numbered levels that plainly mean SDE-1 / SDE-2 ("Engineer II").
+_NUMBER_SDE = {"i": 1, "1": 1, "ii": 2, "2": 2}
 _NUMBER_LEVELS = {
     "i": ("entry", 0, 2), "1": ("entry", 0, 2),
     "ii": ("mid", 2, 6), "2": ("mid", 2, 6), "iii": ("mid", 2, 6), "3": ("mid", 2, 6),
@@ -148,15 +154,27 @@ def title_levels(title: str) -> list[tuple[str, float, float | None]]:
     return levels
 
 
+def generic_sde(title: str) -> int | None:
+    """SDE level from a generic numbered title ("Engineer II" -> 2), if plain."""
+    numbers = {_NUMBER_SDE.get(m.group(1).lower()) for m in _NUMBERED_LEVEL.finditer(title or "")}
+    return numbers.pop() if len(numbers) == 1 else None
+
+
 def assess(job: Job) -> ExperienceReq:
     levels = title_levels(job.title)
+    ladder = company_level(job.company, job.title)
+    sde = ladder.sde if ladder else generic_sde(job.title)
+    level = ladder.label if ladder else ""
     found = mentions(job.description or "")
     if found:
         multi_level = len({name for name, _, _ in levels}) > 1
         pick = min if multi_level else max
         lo, hi, snippet = pick(found, key=lambda f: f[0])
-        return ExperienceReq(min_years=lo, max_years=hi, basis="description", evidence=snippet)
+        return ExperienceReq(min_years=lo, max_years=hi, basis="description", evidence=snippet, sde=sde, level=level)
+    if ladder:
+        return ExperienceReq(min_years=ladder.min_years, max_years=ladder.max_years, basis="ladder",
+                             evidence=f"{ladder.label} ≈ SDE-{ladder.sde}", sde=sde, level=level)
     if levels:
         name, lo, hi = min(levels, key=lambda lv: lv[1])
-        return ExperienceReq(min_years=lo, max_years=hi, basis="title", evidence=f"title level: {name}")
-    return ExperienceReq()
+        return ExperienceReq(min_years=lo, max_years=hi, basis="title", evidence=f"title level: {name}", sde=sde)
+    return ExperienceReq(sde=sde)

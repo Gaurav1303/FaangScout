@@ -81,3 +81,61 @@ def test_max_rows_truncates_and_points_to_full_list():
     assert md.count("[open](") == 2
     assert "…and 3 more - [full list](https://run/1)" in md
     assert "5 openings" in md  # heading still counts everything
+
+
+class TestCompanySummary:
+    """One line per company without rows, naming where its jobs dropped out."""
+
+    @staticmethod
+    def _report():
+        from faangscout.experience import assess
+        from faangscout.models import CompanySource, Rejection, ResolvedCompany
+        from dataclasses import replace
+
+        def co(name, *, note="", resolved=True):
+            sources = (CompanySource("greenhouse", {"board": name}),) if resolved else ()
+            return ResolvedCompany(query=name, name=name, sources=sources, note=note)
+
+        def j(company, title="Software Engineer", **kw):
+            return replace(job(title, **kw), company=company)
+
+        senior = j("Adobe", "Senior Software Engineer", description="Requires 5+ years of experience")
+        senior = replace(senior, experience=assess(senior))
+        return ScoutReport(
+            companies=[co("Acme"), co("Stripe"), co("Rippling"), co("Coinbase"), co("Rubrik"),
+                       co("Adobe"), co("PhonePe"), co("Airbnb"), co("Walmart", note="search API too brittle", resolved=False)],
+            jobs=[ScoredJob(j("Acme"))],
+            sources=[SourceReport(n, f"greenhouse:{n}", fetched=5) for n in
+                     ("Acme", "Stripe", "Rippling", "Coinbase", "Rubrik", "Adobe", "PhonePe")]
+                    + [SourceReport("Airbnb", "greenhouse:airbnb", error="HTTP 404 Not Found")],
+            rejections=[
+                Rejection(j("Stripe"), "posted_within", "posted 50h ago, outside window"),
+                Rejection(replace(j("Rippling"), posted_at=None, precision=Precision.FIRST_SEEN),
+                          "posted_within", "no parseable post date"),
+                Rejection(j("Coinbase", "Account Executive"), "role", "no"),
+                Rejection(j("Rubrik"), "location", "'Palo Alto' is not in India"),
+                Rejection(j("Rubrik", ext="2"), "location", "'Remote - US' is not in India"),
+                Rejection(senior, "experience", "requires 5+ yrs"),
+                Rejection(j("PhonePe"), "already_sent", "reported in an earlier run"),
+            ],
+        )
+
+    def test_every_outcome(self):
+        from faangscout.report import company_summary
+
+        lines = dict(company_summary(self._report(), hours=24, location="India", experience=3))
+        assert "Acme" not in lines  # has a row
+        assert lines["Stripe"] == "no new postings in the last 24h"
+        assert lines["Rippling"].startswith("no new postings in the last 24h (this board shows no dates")
+        assert lines["Coinbase"] == "1 new posting, none software roles"
+        assert lines["Rubrik"] == "2 new software roles, none in India"
+        assert lines["Adobe"] == "1 new India software role, doesn't fit 3 yrs (needs 5+ yrs)"
+        assert lines["PhonePe"] == "1 matching role, already sent in an earlier email"
+        assert lines["Airbnb"].startswith("couldn't check the board (HTTP 404")
+        assert lines["Walmart"] == "not covered (search API too brittle)"
+
+    def test_rendered_in_the_email(self):
+        md = render_markdown(self._report(), hours=24, location="India", experience=3, new_only=True)
+        assert "**No match today (8):**" in md
+        assert "- **Walmart**: not covered (search API too brittle)" in md
+        assert "Not covered yet" not in md

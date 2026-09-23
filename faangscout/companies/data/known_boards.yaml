@@ -183,15 +183,18 @@ companies:
 
   - name: Netflix
     aliases: [netflix]
-    sources: []  # in-house career site, no public ATS API
+    sources: []
+    note: "in-house career site, no public ATS API"
 
   - name: Google
     aliases: [google, alphabet]
-    sources: []  # in-house career site, no public ATS API
+    sources: []
+    note: "in-house career site, no public ATS API"
 
   - name: Meta
     aliases: [meta, facebook]
-    sources: []  # in-house career site, no public ATS API
+    sources: []
+    note: "in-house career site, no public ATS API"
 
   - name: Apple
     aliases: [apple, apple inc]
@@ -239,7 +242,8 @@ companies:
 
   - name: Walmart
     aliases: [walmart, walmart global tech, walmart labs]
-    sources: []  # search runs through a versioned GraphQL query - too brittle to rely on
+    sources: []
+    note: "search runs through a versioned GraphQL query - too brittle to rely on"  # checked 2026-09-23
 
   - name: NVIDIA
     aliases: [nvidia]
@@ -322,7 +326,8 @@ companies:
 
   - name: Zepto
     aliases: [zepto]
-    sources: []  # careers site blocks scripted access (CloudFront), 2026-09-23
+    sources: []
+    note: "careers site blocks scripted access (CloudFront)"  # checked 2026-09-23
 
   - name: Rippling
     aliases: [rippling]
@@ -333,11 +338,13 @@ companies:
 
   - name: Arcesium
     aliases: [arcesium]
-    sources: []  # careers site blocks scripted access (Vercel checkpoint), 2026-09-23
+    sources: []
+    note: "careers site blocks scripted access (Vercel checkpoint)"  # checked 2026-09-23
 
   - name: Indeed
     aliases: [indeed]
-    sources: []  # careers site blocks scripted access, 2026-09-23
+    sources: []
+    note: "careers site blocks scripted access"  # checked 2026-09-23
 
   - name: Sprinklr
     aliases: [sprinklr]
@@ -348,7 +355,8 @@ companies:
 
   - name: Zomato
     aliases: [zomato]
-    sources: []  # no public job board found (Eternal's careers pages), 2026-09-23
+    sources: []
+    note: "no public job board found (Eternal's careers pages)"  # checked 2026-09-23
 
 # No working board yet - in-house sites, or careers pages that block scripted
 # access. Listed so the report names them instead of silently skipping them.
@@ -362,11 +370,13 @@ companies:
 
   - name: D. E. Shaw
     aliases: [de shaw, deshaw, d e shaw, d.e. shaw]
-    sources: []  # India site takes general applications only; no job list, 2026-09-23
+    sources: []
+    note: "India site takes general applications only; no job list"  # checked 2026-09-23
 
   - name: MathWorks
     aliases: [mathworks, the mathworks, math works]
-    sources: []  # careers site blocks scripted access (Access Denied), 2026-09-23
+    sources: []
+    note: "careers site blocks scripted access (Access Denied)"  # checked 2026-09-23
 
   - name: Kotak Mahindra Bank
     aliases: [kotak, kotak mahindra]

@@ -87,7 +87,7 @@ def search(request: SearchRequest) -> SearchResponse:
                 precision=sj.job.precision.value,
                 locations=list(sj.job.locations),
                 remote=sj.job.remote,
-                experience=sj.job.experience.label() if sj.job.experience else None,
+                experience=sj.job.experience.display() if sj.job.experience else None,
             )
             for sj in report.jobs
         ],

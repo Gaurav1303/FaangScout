@@ -37,15 +37,20 @@ class Precision(str, Enum):
 class ExperienceReq:
     """Years of experience a posting asks for, and how we know.
 
-    ``basis`` is "description" (read from the posting text), "title" (implied
-    by a level like "Senior" or "Engineer II"), or "unknown". ``max_years`` is
-    None for open-ended requirements ("3+ years").
+    ``basis`` is "description" (read from the posting text), "ladder" (the
+    title's level on the company's own ladder - "Salesforce MTS"), "title"
+    (implied by a generic level like "Senior" or "Engineer II"), or
+    "unknown". ``max_years`` is None for open-ended requirements ("3+ years").
+    ``sde`` is the level on the common SDE-1/2/3 scale when the title says.
     """
 
     min_years: float | None = None
     max_years: float | None = None
     basis: str = "unknown"
     evidence: str = ""
+    sde: int | None = None
+    #: The ladder level the title matched, e.g. "Salesforce MTS".
+    level: str = ""
 
     def admits(self, years: float) -> bool | None:
         """Whether someone with ``years`` of experience fits. None if unknown."""
@@ -57,10 +62,19 @@ class ExperienceReq:
 
     def label(self) -> str:
         if self.min_years is None:
-            return "not stated"
-        lo = f"{self.min_years:g}"
-        text = f"{lo}–{self.max_years:g} yrs" if self.max_years is not None else f"{lo}+ yrs"
-        return text if self.basis == "description" else f"~{text} (title)"
+            text = "not stated"
+        else:
+            lo = f"{self.min_years:g}"
+            text = f"{lo}–{self.max_years:g} yrs" if self.max_years is not None else f"{lo}+ yrs"
+            if self.basis == "ladder":
+                text = f"~{text} ({self.level})"
+            elif self.basis != "description":
+                text = f"~{text} (title)"
+        return text
+
+    def display(self) -> str:
+        """``label()`` plus the SDE level when known: "3+ yrs · ≈ SDE-2"."""
+        return f"{self.label()} · ≈ SDE-{self.sde}" if self.sde else self.label()
 
 
 @dataclass(frozen=True, slots=True)
@@ -158,6 +172,8 @@ class ResolvedCompany:
     # "registry" when it came from companies.yaml, "discovered" when probed live,
     # "unresolved" when we could not find a board at all.
     origin: str = "registry"
+    #: The registry's reason for having no board, if any.
+    note: str = ""
 
     @property
     def resolved(self) -> bool:
@@ -262,6 +278,8 @@ class ScoutReport:
     jobs: list[ScoredJob] = field(default_factory=list)
     sources: list[SourceReport] = field(default_factory=list)
     unresolved: list[str] = field(default_factory=list)
+    #: Every company asked for, resolved or not, in the order given.
+    companies: list[ResolvedCompany] = field(default_factory=list)
     rejections: list[Rejection] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
     started_at: datetime = field(default_factory=lambda: datetime.now(UTC))
