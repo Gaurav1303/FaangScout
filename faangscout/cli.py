@@ -165,7 +165,8 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.markdown:
         print(render_markdown(report, role=args.role, hours=args.hours, new_only=new_only,
-                              location=args.location, experience=args.experience), end="")
+                              location=args.location, experience=args.experience,
+                              show_excluded=True), end="")
     elif args.json:
         print(json.dumps(_report_to_dict(report, explain=args.explain), indent=2, default=str))
     else:

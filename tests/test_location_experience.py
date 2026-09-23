@@ -262,3 +262,21 @@ def test_markdown_shows_experience_column_and_scope():
     md = render_markdown(ScoutReport(jobs=[ScoredJob(j)]), role="software engineer", hours=24, location="India", experience=3)
     assert "in **India**" in md and "fits **3 yrs** experience" in md
     assert "| Experience |" in md and "| 3+ yrs |" in md
+
+
+def test_markdown_lists_experience_exclusions_and_warnings():
+    from faangscout.models import Rejection
+    kept = Job(company="A", title="SWE II", url="https://u", source="s", posted_at=NOW)
+    senior = Job(company="A", title="Senior SWE", url="https://s", source="s", posted_at=NOW)
+    report = ScoutReport(
+        jobs=[ScoredJob(kept)],
+        rejections=[Rejection(senior, "experience", "requires 5+ yrs ('5+ years of experience')"),
+                    Rejection(senior, "location", "not in India")],
+        warnings=["couldn't fetch the full posting for 1 job(s)", "could not resolve: Apple"],
+    )
+    md = render_markdown(report, show_excluded=True)
+    assert "Excluded by experience (1)" in md and "requires 5+ yrs" in md
+    assert "not in India" not in md  # only experience exclusions are listed
+    assert "⚠️ couldn't fetch the full posting" in md
+    assert "could not resolve" not in md  # already shown as "Not covered yet"
+    assert "Excluded by experience" not in render_markdown(report)  # off by default (e.g. email comment)

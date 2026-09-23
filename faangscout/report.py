@@ -42,6 +42,7 @@ def render_markdown(
     more_link: str | None = None,
     location: str | None = None,
     experience: float | None = None,
+    show_excluded: bool = False,
 ) -> str:
     """Render ``report`` as Markdown.
 
@@ -97,5 +98,17 @@ def render_markdown(
 
     if report.unresolved:
         lines += ["", f"**Not covered yet ({len(report.unresolved)}):** {', '.join(report.unresolved)}"]
+
+    notes = [w for w in report.warnings if not w.startswith("could not resolve")]
+    if notes:
+        lines += [""] + [f"> ⚠️ {_cell(w)}" for w in notes]
+
+    # Jobs that got as far as the experience check but didn't fit - worth
+    # seeing, so a misread requirement is visible rather than silent.
+    excluded = [r for r in report.rejections if r.filter_name == "experience"]
+    if show_excluded and excluded:
+        lines += ["", f"<details><summary>Excluded by experience ({len(excluded)})</summary>", ""]
+        lines += [f"- {_cell(r.job.company)}: [{_cell(r.job.title)}]({r.job.url}) - {_cell(r.reason)}" for r in excluded]
+        lines += ["", "</details>"]
 
     return "\n".join(lines) + "\n"
