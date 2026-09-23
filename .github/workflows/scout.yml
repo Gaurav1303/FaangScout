@@ -4,7 +4,9 @@
 #   - Daily at 09:00 IST: posts NEW openings as a comment on the
 #     "FaangScout results" issue, which emails you.
 #   - On demand: Actions tab -> FaangScout -> Run workflow.
-#   - On push of scout.yaml to feature/firstDraft, so changes run right away.
+#   - On push to feature/firstDraft (search config, workflow, or code): a
+#     test run. It shows results in the run summary but does NOT email or mark
+#     jobs as reported, so development pushes never eat into the daily email.
 #
 # Note: `schedule` only fires from the default branch (main).
 
@@ -26,7 +28,7 @@ on:
         required: false
   push:
     branches: [feature/firstDraft]
-    paths: [scout.yaml, .github/workflows/scout.yml]
+    paths: [scout.yaml, .github/workflows/scout.yml, "faangscout/**", "scripts/**"]
   schedule:
     - cron: "30 3 * * *"
 
@@ -47,6 +49,8 @@ jobs:
       ROLE: ${{ inputs.role }}
       HOURS: ${{ inputs.hours }}
       RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      # Only scheduled and manual runs email you and record what was sent.
+      DELIVER: ${{ github.event_name != 'push' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -57,6 +61,11 @@ jobs:
 
       - name: Install
         run: pip install -e .
+
+      - name: Probe (diagnostics)
+        if: hashFiles('scripts/probe_targets.yaml') != ''
+        continue-on-error: true
+        run: python scripts/probe.py scripts/probe_targets.yaml | tee probe.log
 
       # Companies with no confirmed board get probed every run, so a board
       # that moves ATS is picked up without a code change.
@@ -69,7 +78,7 @@ jobs:
         run: faangscout --config scout.yaml --companies-file discovered.yaml --check | tee check.log
 
       - name: Restore already-reported jobs
-        if: env.MODE == 'search'
+        if: env.MODE == 'search' && env.DELIVER == 'true'
         uses: actions/cache/restore@v4
         with:
           path: .faangscout/seen.json
@@ -79,9 +88,9 @@ jobs:
       - name: Search
         if: env.MODE == 'search'
         run: |
-          args=(--config scout.yaml --companies-file discovered.yaml
-                --seen-file .faangscout/seen.json --json-out results.json
+          args=(--config scout.yaml --companies-file discovered.yaml --json-out results.json
                 --markdown --comment-out comment.md --more-link "$RUN_URL")
+          if [ "$DELIVER" = "true" ]; then args+=(--seen-file .faangscout/seen.json); fi
           if [ -n "$ROLE" ]; then args+=(--role "$ROLE"); fi
           if [ -n "$HOURS" ]; then args+=(--hours "$HOURS"); fi
           faangscout "${args[@]}" > results.md
@@ -89,14 +98,14 @@ jobs:
           cat results.md >> "$GITHUB_STEP_SUMMARY"
 
       - name: Save already-reported jobs
-        if: env.MODE == 'search'
+        if: env.MODE == 'search' && env.DELIVER == 'true'
         uses: actions/cache/save@v4
         with:
           path: .faangscout/seen.json
           key: faangscout-seen-${{ github.run_id }}
 
       - name: Post new openings to the results issue
-        if: env.MODE == 'search'
+        if: env.MODE == 'search' && env.DELIVER == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           OWNER: ${{ github.repository_owner }}
@@ -124,6 +133,7 @@ jobs:
             discovered.yaml
             discover.log
             check.log
+            probe.log
             results.md
             results.json
           if-no-files-found: ignore

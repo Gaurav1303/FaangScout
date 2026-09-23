@@ -343,3 +343,23 @@ class TestMicrosoft:
         provider = MicrosoftProvider(client=client_with(lambda r: httpx.Response(200, json=payload)))
         jobs = provider.fetch({}, HINTS)
         assert jobs[0].locations == ("Dublin, Ireland",)
+
+
+class TestGreenhouseDates:
+    def _entry(self, **extra):
+        return {"id": 1, "title": "SWE", "absolute_url": "u", "updated_at": "2026-09-22T20:00:00Z",
+                "location": {"name": "Remote"}, "departments": [], "content": "", **extra}
+
+    def test_prefers_first_published_over_bulk_refreshed_updated_at(self):
+        payload = {"jobs": [self._entry(first_published="2026-05-01T10:00:00Z")]}
+        provider = GreenhouseProvider(client=client_with(lambda r: httpx.Response(200, json=payload)))
+        [job] = provider.fetch({"board": "acme"}, HINTS)
+        assert job.posted_at == datetime(2026, 5, 1, 10, 0, tzinfo=UTC)
+        assert job.precision == Precision.EXACT
+
+    def test_falls_back_to_updated_at(self):
+        payload = {"jobs": [self._entry()]}
+        provider = GreenhouseProvider(client=client_with(lambda r: httpx.Response(200, json=payload)))
+        [job] = provider.fetch({"board": "acme"}, HINTS)
+        assert job.posted_at == datetime(2026, 9, 22, 20, 0, tzinfo=UTC)
+        assert job.precision == Precision.APPROXIMATE

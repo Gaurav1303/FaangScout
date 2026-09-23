@@ -1,0 +1,39 @@
+# Diagnostic targets for scripts/probe.py - read by the "Probe" workflow step.
+# Delete this file once the findings are applied; the step is skipped without it.
+
+# Does Greenhouse expose a real publish date? (updated_at is bulk-refreshed.)
+- {name: greenhouse fields, url: "https://boards-api.greenhouse.io/v1/boards/rubrik/jobs", limit: 900}
+
+# Where did Microsoft's search API go?
+- {name: ms old api, url: "https://gcsservices.careers.microsoft.com/search/api/v1/search?q=software&l=en_us&pg=1&pgSz=2&o=Recent&flt=true", limit: 400}
+- {name: ms careers, kind: fingerprint, url: "https://jobs.careers.microsoft.com/global/en/search"}
+- {name: ms careers2, kind: fingerprint, url: "https://careers.microsoft.com/"}
+- {name: ms eightfold v2, url: "https://apply.careers.microsoft.com/api/apply/v2/jobs?domain=microsoft.com&start=0&num=2&sort_by=timestamp", limit: 1500}
+- {name: ms eightfold pcsx, url: "https://apply.careers.microsoft.com/api/pcsx/search?domain=microsoft.com&query=software%20engineer&location=&start=0&sort_by=timestamp", limit: 1500}
+
+# Qualcomm (Eightfold?)
+- {name: qualcomm v2, url: "https://careers.qualcomm.com/api/apply/v2/jobs?domain=qualcomm.com&start=0&num=2&sort_by=timestamp", limit: 1200}
+- {name: qualcomm pcsx, url: "https://careers.qualcomm.com/api/pcsx/search?domain=qualcomm.com&query=software&start=0&sort_by=timestamp", limit: 1200}
+
+# Which ATS does each unresolved company's careers page use?
+- {name: Walmart, kind: fingerprint, url: "https://careers.walmart.com/"}
+- {name: Intuit, kind: fingerprint, url: "https://jobs.intuit.com/"}
+- {name: Apple, kind: fingerprint, url: "https://jobs.apple.com/en-us/search"}
+- {name: Indeed, kind: fingerprint, url: "https://www.indeed.jobs/"}
+- {name: MathWorks, kind: fingerprint, url: "https://www.mathworks.com/company/jobs/opportunities.html"}
+- {name: Nutanix, kind: fingerprint, url: "https://www.nutanix.com/company/careers"}
+- {name: Nutanix2, kind: fingerprint, url: "https://careers.nutanix.com/"}
+- {name: PhonePe, kind: fingerprint, url: "https://www.phonepe.com/careers/job-openings/"}
+- {name: Arcesium, kind: fingerprint, url: "https://www.arcesium.com/careers"}
+- {name: D. E. Shaw, kind: fingerprint, url: "https://www.deshaw.com/careers"}
+- {name: Rippling, kind: fingerprint, url: "https://www.rippling.com/careers"}
+- {name: Rippling ats, url: "https://ats.rippling.com/rippling/jobs", limit: 600}
+- {name: Zepto, kind: fingerprint, url: "https://www.zeptonow.com/careers"}
+- {name: ShareChat, kind: fingerprint, url: "https://sharechat.com/careers"}
+- {name: DP World, kind: fingerprint, url: "https://careers.dpworld.com/"}
+- {name: Qualcomm, kind: fingerprint, url: "https://careers.qualcomm.com/careers"}
+- {name: Postman, kind: fingerprint, url: "https://www.postman.com/company/careers/"}
+- {name: Kotak, kind: fingerprint, url: "https://careers.kotak.com/"}
+- {name: JPMorgan, kind: fingerprint, url: "https://careers.jpmorgan.com/"}
+- {name: Zomato, kind: fingerprint, url: "https://www.zomato.com/careers"}
+- {name: Zomato/Eternal, kind: fingerprint, url: "https://www.eternal.com/careers/"}

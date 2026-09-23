@@ -222,11 +222,17 @@ companies:
 
   - name: Adobe
     aliases: [adobe, adobe inc]
-    sources: []
+    # Confirmed by live discovery (GitHub Actions run 35820063722).
+    sources:
+      - provider: workday
+        config: {host: adobe.wd5.myworkdayjobs.com, tenant: adobe, site: external_experienced}
 
   - name: Salesforce
     aliases: [salesforce, sfdc]
-    sources: []
+    # Confirmed by live discovery (GitHub Actions run 35820063722).
+    sources:
+      - provider: workday
+        config: {host: salesforce.wd12.myworkdayjobs.com, tenant: salesforce, site: External_Career_Site}
 
   - name: Walmart
     aliases: [walmart, walmart global tech, walmart labs]
@@ -234,11 +240,17 @@ companies:
 
   - name: NVIDIA
     aliases: [nvidia]
-    sources: []
+    # Confirmed by live discovery (GitHub Actions run 35820063722).
+    sources:
+      - provider: workday
+        config: {host: nvidia.wd5.myworkdayjobs.com, tenant: nvidia, site: NVIDIAExternalCareerSite}
 
   - name: Mastercard
     aliases: [mastercard, master card]
-    sources: []
+    # Confirmed by live discovery (GitHub Actions run 35820063722).
+    sources:
+      - provider: workday
+        config: {host: mastercard.wd1.myworkdayjobs.com, tenant: mastercard, site: CorporateCareers}
 
   - name: Intuit
     aliases: [intuit]
@@ -254,7 +266,10 @@ companies:
 
   - name: Rubrik
     aliases: [rubrik, rubirik]
-    sources: []
+    # Confirmed by live discovery (GitHub Actions run 35820063722).
+    sources:
+      - provider: greenhouse
+        config: {board: rubrik}
 
   - name: Postman
     aliases: [postman]
@@ -262,7 +277,10 @@ companies:
 
   - name: Cohesity
     aliases: [cohesity]
-    sources: []
+    # Confirmed by live discovery (GitHub Actions run 35820063722).
+    sources:
+      - provider: workday
+        config: {host: cohesity.wd5.myworkdayjobs.com, tenant: cohesity, site: Cohesity_Careers}
 
   - name: PhonePe
     aliases: [phonepe, phone pe]
@@ -270,7 +288,10 @@ companies:
 
   - name: Compass
     aliases: [compass, urban compass]
-    sources: []
+    # Confirmed by live discovery (GitHub Actions run 35820063722).
+    sources:
+      - provider: greenhouse
+        config: {board: urbancompass}
 
   - name: ShareChat
     aliases: [sharechat, share chat, moj]
@@ -294,10 +315,13 @@ companies:
 
   - name: Sprinklr
     aliases: [sprinklr]
-    sources: []
+    # Confirmed by live discovery (GitHub Actions run 35820063722).
+    sources:
+      - provider: workday
+        config: {host: sprinklr.wd1.myworkdayjobs.com, tenant: sprinklr, site: careers}
 
   - name: Zomato
-    aliases: [zomato, eternal]
+    aliases: [zomato]
     sources: []
 
 # No provider type for these yet - they run Oracle HCM (JPMorgan), SAP
