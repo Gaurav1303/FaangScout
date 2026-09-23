@@ -23,7 +23,8 @@ company names  ->  [registry/resolver]  ->  [providers]  ->  [filters]  ->  resu
   company means adding a YAML entry, never touching Python. See "Adding a
   company" below.
 - **`providers/`** - one class per board backend (Greenhouse, Lever, Ashby,
-  SmartRecruiters, Workday, plus Amazon and Microsoft in-house portals), each implementing the same `fetch(config,
+  SmartRecruiters, Workday, Eightfold, Oracle Recruiting Cloud, and Amazon's
+  in-house portal), each implementing the same `fetch(config,
   hints) -> list[Job]` interface. Adding a new job-board backend means adding
   one file and registering it - nothing else changes. See "Adding a
   provider".
@@ -146,26 +147,42 @@ output.
 Run this first whenever a company returns nothing and you expected results -
 it distinguishes "genuinely no new postings" from "this board token is stale."
 
-## Amazon and Microsoft
+## Supported job boards
 
-Both run in-house career sites rather than a third-party ATS, but each
-exposes the JSON endpoint its own frontend calls, and FaangScout speaks both:
+| Provider | Used by (in the bundled registry) | Date quality |
+|---|---|---|
+| `greenhouse` | Stripe, Airbnb, Coinbase, Rubrik, Compass, ... | exact (`first_published`) |
+| `lever`, `ashby`, `smartrecruiters` | Palantir, OpenAI, Ramp, ... | exact |
+| `workday` | Adobe, Salesforce, NVIDIA, Mastercard, Cohesity, Sprinklr | day only ("Posted Today") |
+| `eightfold` | Microsoft, Qualcomm | posted/re-posted time |
+| `oracle_hcm` | JPMorgan Chase, DP World | day only |
+| `amazon` | Amazon | day only |
 
-```bash
-faangscout --companies Amazon Microsoft --role "backend engineer" --hours 24
-```
+Every one of these was confirmed against the live service from a GitHub
+Actions runner (September 2026) - including that the job links in the report
+open the right posting.
 
-**These are internal endpoints, not supported public APIs.** They carry no
-stability guarantee and either company can change or gate them without
-notice. The providers parse defensively and raise a named error on a shape
-change rather than returning an empty list that reads like "no jobs today" -
-but treat `--check` as a prerequisite before trusting a quiet result.
+**Amazon, Eightfold, and Oracle endpoints are the ones those sites' own
+frontends call, not documented public APIs.** They carry no stability
+guarantee. Microsoft already moved once: its old
+`gcsservices.careers.microsoft.com` API was retired for Eightfold. Providers
+raise a named error on a shape change rather than returning an empty list
+that reads like "no jobs today", so `--check` surfaces a break immediately.
 
-Amazon exposes a calendar date with no time of day, so its postings are
-`Precision.DATE_ONLY`: the timestamp lands at midnight and the posting could
-have happened any time in the following 24h. The time-window filter widens by
-24h for these rather than dropping this morning's job because it parsed as
-"32h ago". Google, Meta, Apple, and Netflix have no comparable endpoint and
+**"Day only" sources** give a calendar date, not a time. Those postings are
+`Precision.DATE_ONLY`: displayed as "today"/"yesterday", and the time-window
+filter widens by 24h for them rather than dropping this morning's job because
+it parsed as "32h ago".
+
+**Greenhouse's `updated_at` is not a posting date.** Recruiters bulk-edit
+postings; one live run saw 45 months-old Compass jobs all "updated 9h ago".
+The provider uses `first_published` and only falls back to `updated_at`.
+
+Transient failures (HTTP 429/502/503/504, timeouts) are retried with backoff,
+honouring `Retry-After`, so one rate-limited request doesn't drop a company
+from that day's report.
+
+Google, Meta, Apple, and Netflix have no endpoint FaangScout can read yet and
 remain listed with empty `sources`.
 
 ## Try it offline (no internet needed)
@@ -302,7 +319,7 @@ pip install -r requirements-dev.txt
 pytest
 ```
 
-All 126 tests run against mocked HTTP responses (`httpx.MockTransport`) - no
+All 140 tests run against mocked HTTP responses (`httpx.MockTransport`) - no
 network access needed, and none of the numbers in these tests came from a
 live board.
 

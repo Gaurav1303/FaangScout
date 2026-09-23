@@ -59,12 +59,9 @@ class WorkdayProvider(Provider):
                 "offset": offset,
                 "searchText": hints.role_query or "",
             }
-            try:
-                response = self._client.post(url, json=body)
-                response.raise_for_status()
-                payload = response.json()
-            except Exception as exc:  # noqa: BLE001
-                raise ProviderError(f"workday: {tenant}/{site} -> {exc!r}") from exc
+            payload = self._request_json("POST", url, json=body)
+            if not isinstance(payload, dict):
+                raise ProviderError(f"workday: {tenant}/{site} -> unexpected response (not a JSON object)")
 
             postings = payload.get("jobPostings", [])
             total = payload.get("total", offset + len(postings))

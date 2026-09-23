@@ -9,6 +9,7 @@ in ``REGISTRY`` - nothing else in the codebase needs to change.
 from __future__ import annotations
 
 import logging
+import time
 from abc import ABC, abstractmethod
 
 import httpx
@@ -73,17 +74,57 @@ class Provider(ABC):
         return await asyncio.to_thread(self.fetch, config, hints)
 
     def _get_json(self, url: str, **kwargs) -> object:
-        try:
-            response = self._client.get(url, **kwargs)
-            response.raise_for_status()
-        except httpx.HTTPStatusError as exc:
-            raise ProviderError(f"{self.name}: {url} -> HTTP {exc.response.status_code}") from exc
-        except httpx.HTTPError as exc:
-            raise ProviderError(f"{self.name}: {url} -> {exc!r}") from exc
-        try:
-            return response.json()
-        except ValueError as exc:
-            raise ProviderError(f"{self.name}: {url} -> invalid JSON") from exc
+        return self._request_json("GET", url, **kwargs)
+
+    def _request_json(self, method: str, url: str, **kwargs) -> object:
+        """Send a request and parse JSON, retrying transient failures.
+
+        Retries rate limiting (429), gateway errors (502/503/504) and timeouts
+        a couple of times with backoff, honouring ``Retry-After``. Without
+        this, one 429 - seen live from Qualcomm - drops a whole company from
+        that day's report.
+        """
+        for attempt in range(RETRY_ATTEMPTS):
+            last = attempt == RETRY_ATTEMPTS - 1
+            try:
+                response = self._client.request(method, url, **kwargs)
+            except httpx.TimeoutException as exc:
+                if last:
+                    raise ProviderError(f"{self.name}: {url} -> {exc!r}") from exc
+                self._sleep(RETRY_BACKOFF[attempt])
+                continue
+            except httpx.HTTPError as exc:
+                raise ProviderError(f"{self.name}: {url} -> {exc!r}") from exc
+
+            if response.status_code in RETRY_STATUSES and not last:
+                self._sleep(_retry_delay(response, attempt))
+                continue
+            try:
+                response.raise_for_status()
+            except httpx.HTTPStatusError as exc:
+                raise ProviderError(f"{self.name}: {url} -> HTTP {exc.response.status_code}") from exc
+            try:
+                return response.json()
+            except ValueError as exc:
+                raise ProviderError(f"{self.name}: {url} -> invalid JSON") from exc
+        raise AssertionError("unreachable")  # pragma: no cover
+
+    #: Indirection so tests can retry without actually waiting.
+    _sleep = staticmethod(time.sleep)
+
+
+RETRY_ATTEMPTS = 3
+RETRY_STATUSES = frozenset({429, 502, 503, 504})
+RETRY_BACKOFF = (2.0, 6.0)
+_MAX_RETRY_AFTER = 30.0
+
+
+def _retry_delay(response: httpx.Response, attempt: int) -> float:
+    header = response.headers.get("Retry-After", "")
+    try:
+        return min(float(header), _MAX_RETRY_AFTER)
+    except ValueError:
+        return RETRY_BACKOFF[attempt]
 
 
 REGISTRY: dict[str, type[Provider]] = {}

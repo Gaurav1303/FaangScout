@@ -1,12 +1,12 @@
 # Diagnostic targets for scripts/probe.py - read by the "Probe" workflow step.
 # Delete this file once the findings are applied; the step is skipped without it.
 
-# Do the job links in the report open real postings? One per provider, taken
-# from run 35821283844's results. Workday twice: the old (site-less) link and
-# the fixed one.
-- {name: workday old link, kind: link, url: "https://mastercard.wd1.myworkdayjobs.com/job/Pune-India/Software-Engineer-II_R-289618"}
-- {name: workday fixed link, kind: link, url: "https://mastercard.wd1.myworkdayjobs.com/CorporateCareers/job/Pune-India/Software-Engineer-II_R-289618"}
-- {name: eightfold link, kind: link, url: "https://apply.careers.microsoft.com/careers/job/1970393556981791"}
-- {name: oracle link, kind: link, url: "https://jpmc.fa.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1001/job/210785193"}
-- {name: amazon link, kind: link, url: "https://www.amazon.jobs/en/jobs/10557199/software-development-engineer-ai-trust-innovation"}
-- {name: greenhouse link, kind: link, url: "https://www.compass.com/careers?gh_jid=7800230"}
+# NVIDIA matched 0 "software engineer" jobs in 24h despite a healthy board.
+# Is Workday's search relevance-ordered (so recent postings sit past the
+# pages fetched)? Look at total and the postedOn of the first page.
+- {name: nvidia workday search, method: POST, limit: 2500,
+   url: "https://nvidia.wd5.myworkdayjobs.com/wday/cxs/nvidia/NVIDIAExternalCareerSite/jobs",
+   json: {appliedFacets: {}, limit: 20, offset: 0, searchText: "software engineer"}}
+- {name: nvidia workday no-search, method: POST, limit: 1500,
+   url: "https://nvidia.wd5.myworkdayjobs.com/wday/cxs/nvidia/NVIDIAExternalCareerSite/jobs",
+   json: {appliedFacets: {}, limit: 20, offset: 0, searchText: ""}}

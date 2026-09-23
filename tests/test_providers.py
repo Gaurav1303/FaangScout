@@ -424,3 +424,62 @@ class TestGreenhouseDates:
         [job] = provider.fetch({"board": "acme"}, HINTS)
         assert job.posted_at == datetime(2026, 9, 22, 20, 0, tzinfo=UTC)
         assert job.precision == Precision.APPROXIMATE
+
+
+class TestRetries:
+    """A transient 429/503 must not drop a whole company from the report."""
+
+    def _provider(self, responses, sleeps):
+        calls = iter(responses)
+
+        def handler(request):
+            item = next(calls)
+            if isinstance(item, Exception):
+                raise item
+            return item
+
+        provider = GreenhouseProvider(client=client_with(handler))
+        provider._sleep = sleeps.append
+        return provider
+
+    def test_retries_429_then_succeeds_honouring_retry_after(self):
+        sleeps = []
+        provider = self._provider(
+            [httpx.Response(429, headers={"Retry-After": "3"}), httpx.Response(200, json={"jobs": []})], sleeps)
+        assert provider.fetch({"board": "acme"}, HINTS) == []
+        assert sleeps == [3.0]
+
+    def test_gives_up_after_three_attempts(self):
+        sleeps = []
+        provider = self._provider([httpx.Response(503)] * 3, sleeps)
+        with pytest.raises(ProviderError, match="HTTP 503"):
+            provider.fetch({"board": "acme"}, HINTS)
+        assert sleeps == [2.0, 6.0]
+
+    def test_retry_after_is_capped(self):
+        sleeps = []
+        provider = self._provider(
+            [httpx.Response(429, headers={"Retry-After": "3600"}), httpx.Response(200, json={"jobs": []})], sleeps)
+        provider.fetch({"board": "acme"}, HINTS)
+        assert sleeps == [30.0]
+
+    def test_timeout_is_retried(self):
+        sleeps = []
+        provider = self._provider([httpx.ReadTimeout("slow"), httpx.Response(200, json={"jobs": []})], sleeps)
+        assert provider.fetch({"board": "acme"}, HINTS) == []
+        assert sleeps == [2.0]
+
+    def test_404_is_not_retried(self):
+        sleeps = []
+        provider = self._provider([httpx.Response(404)], sleeps)
+        with pytest.raises(ProviderError, match="HTTP 404"):
+            provider.fetch({"board": "acme"}, HINTS)
+        assert sleeps == []
+
+    def test_workday_post_goes_through_retry(self):
+        sleeps = []
+        calls = iter([httpx.Response(429), httpx.Response(200, json={"total": 0, "jobPostings": []})])
+        provider = WorkdayProvider(client=client_with(lambda r: next(calls)))
+        provider._sleep = sleeps.append
+        provider.fetch({"host": "a.wd1.myworkdayjobs.com", "tenant": "a", "site": "X"}, HINTS)
+        assert sleeps == [2.0]

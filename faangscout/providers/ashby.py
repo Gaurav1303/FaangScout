@@ -23,14 +23,7 @@ class AshbyProvider(Provider):
             raise ProviderError("ashby: config requires 'board'")
 
         base = config.get("base_url", _DEFAULT_BASE).rstrip("/")
-        try:
-            response = self._client.get(
-                base + _PATH.format(board=board), params={"includeCompensation": "false"}
-            )
-            response.raise_for_status()
-            payload = response.json()
-        except Exception as exc:  # noqa: BLE001 - normalised into ProviderError
-            raise ProviderError(f"ashby: board {board!r} -> {exc!r}") from exc
+        payload = self._get_json(base + _PATH.format(board=board), params={"includeCompensation": "false"})
 
         if not isinstance(payload, dict) or "jobs" not in payload:
             raise ProviderError(f"ashby: unexpected response shape for board {board!r}")
