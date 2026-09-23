@@ -40,3 +40,34 @@ companies:
   - Mastercard
   - Qualcomm
   - Postman
+
+  # Added: companies paying roughly 35-40 LPA or more at ~3 years (SDE-2),
+  # per levels.fyi and LeetCode Discuss - see README "Companies".
+  - Flipkart
+  - Swiggy
+  - Meesho
+  - Goldman Sachs
+  - ServiceNow
+  - Visa
+  - Palo Alto Networks
+  - Zscaler
+  - PayPal
+  - Razorpay
+  - CRED
+  - Groww
+  - Myntra
+  - Dream Sports
+  - Tekion
+  - BrowserStack
+  - Autodesk
+  - Expedia
+  - Twilio
+  - Harness
+  - Zeta
+  - Uber
+  - Atlassian
+  - Confluent
+  - Databricks
+  - LinkedIn
+  - Booking.com
+  - Google

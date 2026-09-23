@@ -36,3 +36,65 @@ candidates:
   Zomato:
     # Not 'eternal': that Lever board is an unrelated NYC/SF company.
     slugs: [zomatoltd]
+  # Added 2026-09-23 (the ~35-40 LPA list). Slugs from the name/aliases are
+  # tried automatically; these are the non-obvious ones.
+  Swiggy:
+    slugs: [bundltechnologies, swiggyinstamart]
+  Meesho:
+    slugs: [fashnear, meeshotech]
+  Goldman Sachs:
+    slugs: [goldmansachs]
+  ServiceNow:
+    slugs: [servicenow]
+  Visa:
+    slugs: [visa]
+  Palo Alto Networks:
+    slugs: [paloaltonetworks, paloaltonetworks2]
+    workday:
+      - {tenant: paloaltonetworks, sites: [PaloAltoNetworks, External, careers]}
+  PayPal:
+    workday:
+      - {tenant: paypal, hosts: [wd1], sites: [jobs, External, PayPal]}
+  Razorpay:
+    slugs: [razorpaysoftwareprivatelimited, razorpaysoftware]
+  CRED:
+    slugs: [credclub, cred-club, dreamplugtechnologies]
+  Groww:
+    slugs: [growwin, nextbillion, nextbilliontechnology]
+  Myntra:
+    slugs: [myntradesigns, myntrajobs]
+  Dream Sports:
+    slugs: [dreamsports, dreamsportsgroup, dream11]
+  Tekion:
+    slugs: [tekioncorp, tekion-corp]
+  BrowserStack:
+    slugs: [browserstack]
+  Autodesk:
+    workday:
+      - {tenant: autodesk, hosts: [wd1], sites: [Ext, External, Autodesk]}
+  Expedia:
+    workday:
+      - {tenant: expedia, hosts: [wd108, wd5, wd1], sites: [search, Expedia_Careers, External]}
+  Twilio:
+    slugs: [twilio]
+  Harness:
+    slugs: [harnessinc, harness-io, harnessio]
+  Zeta:
+    slugs: [zetasuite, zeta-suite, betterworldtechnology, zetatech]
+  Uber:
+    slugs: [uberinc]
+  Atlassian:
+    slugs: [atlassian]
+    workday:
+      - {tenant: atlassian, sites: [Atlassian, External]}
+  Confluent:
+    slugs: [confluentinc]
+  Flipkart:
+    slugs: [flipkartinternet]
+  LinkedIn:
+    workday:
+      - {tenant: linkedin, sites: [LinkedIn, External]}
+  Booking.com:
+    slugs: [bookingcom, booking]
+    workday:
+      - {tenant: booking, sites: [Booking, External]}

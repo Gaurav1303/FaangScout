@@ -392,3 +392,113 @@ companies:
     sources:
       - provider: oracle_hcm
         config: {host: ehpv.fa.em2.oraclecloud.com, site: CX_1}
+
+# --------------------------------------------------------------------------- #
+# Added 2026-09-23: companies that pay roughly 35-40 LPA or more for ~3 years
+# (SDE-2) in India, per levels.fyi and LeetCode Discuss offer threads. Boards
+# not confirmed yet - `--discover` tries the guesses in discovery_candidates.yaml.
+# --------------------------------------------------------------------------- #
+
+  - name: Flipkart
+    aliases: [flipkart]
+    sources: []
+
+  - name: Swiggy
+    aliases: [swiggy, bundl technologies]
+    sources: []
+
+  - name: Meesho
+    aliases: [meesho]
+    sources: []
+
+  - name: Goldman Sachs
+    aliases: [goldman sachs, goldman]
+    sources: []
+
+  - name: ServiceNow
+    aliases: [servicenow, service now]
+    sources: []
+
+  - name: Visa
+    aliases: [visa, visa inc]
+    sources: []
+
+  - name: Palo Alto Networks
+    aliases: [palo alto networks, palo alto]
+    sources: []
+
+  - name: Zscaler
+    aliases: [zscaler]
+    sources: []
+
+  - name: PayPal
+    aliases: [paypal, pay pal]
+    sources: []
+
+  - name: Razorpay
+    aliases: [razorpay, razor pay]
+    sources: []
+
+  - name: CRED
+    aliases: [cred, dreamplug]
+    sources: []
+
+  - name: Groww
+    aliases: [groww]
+    sources: []
+
+  - name: Myntra
+    aliases: [myntra]
+    sources: []
+
+  - name: Dream Sports
+    aliases: [dream sports, dream11, dream 11]
+    sources: []
+
+  - name: Tekion
+    aliases: [tekion]
+    sources: []
+
+  - name: BrowserStack
+    aliases: [browserstack, browser stack]
+    sources: []
+
+  - name: Autodesk
+    aliases: [autodesk]
+    sources: []
+
+  - name: Expedia
+    aliases: [expedia, expedia group]
+    sources: []
+
+  - name: Twilio
+    aliases: [twilio]
+    sources: []
+
+  - name: Harness
+    aliases: [harness, harness io, harness.io]
+    sources: []
+
+  - name: Zeta
+    aliases: [zeta, zeta suite]
+    sources: []
+
+  - name: Uber
+    aliases: [uber]
+    sources: []
+
+  - name: Atlassian
+    aliases: [atlassian]
+    sources: []
+
+  - name: Confluent
+    aliases: [confluent]
+    sources: []
+
+  - name: LinkedIn
+    aliases: [linkedin, linked in]
+    sources: []
+
+  - name: Booking.com
+    aliases: [booking.com, booking, booking holdings]
+    sources: []
