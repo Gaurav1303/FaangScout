@@ -621,7 +621,7 @@ def test_google_details_start_at_the_jobs_own_heading():
     from faangscout.providers.google_careers import GoogleCareersProvider
 
     other_card = "<h3 class=\"QJPWVe\">Software Engineer II</h3><h4>Minimum qualifications:</h4><ul><li>1 year of experience.</li></ul>"
-    page = (f"<html>{other_card}<h2 class=\"p1N2lc\">Senior Staff Software Engineer, YouTube &amp; Co</h2>"
+    page = (f"<html>{other_card}<div jscontroller=\"A1Do3b\" data-title=\"Senior Staff Software Engineer, YouTube &amp; Co\">"
             "<h3>Minimum qualifications:</h3><ul><li>10 years of experience in software development.</li></ul>"
             "<h3>About the job</h3></html>")
     provider = GoogleCareersProvider(client=client_with(lambda r: httpx.Response(200, text=page)))

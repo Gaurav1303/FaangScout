@@ -15,8 +15,8 @@ lists only the first few qualifications (a "Senior Staff" card can show just
 "3 years of experience with ..."), so the requirement is read from the job's
 own page, from "Minimum qualifications" on - only for jobs that pass the
 cheaper filters. A job's page also renders the results list around it, so
-the search starts at the job's own title heading, not the first card's
-qualifications.
+the search starts at the job's own details block (``data-title="..."``),
+not the first card's qualifications.
 """
 
 from __future__ import annotations
@@ -89,9 +89,10 @@ class GoogleCareersProvider(Provider):
     def fetch_details(self, job: Job) -> Job:
         """The job page's qualifications (minimum, then preferred) as text."""
         html = self._get_text(job.detail_url)
-        # The job's own heading: "<h2 ...>Senior Staff Software Engineer, ...</h2>".
-        heading = re.search(r"<h2\b[^>]*>\s*" + re.escape(html_lib.escape(job.title, quote=False)) + r"\s*</h2>", html)
-        start = _MINIMUM.search(html, heading.end() if heading else 0)
+        # The job's own details block: <div ... data-title="Senior Staff Software Engineer, ...">
+        # (seen 2026-09-23); the results list around it has other jobs' qualifications.
+        heading = html.find(f'data-title="{html_lib.escape(job.title, quote=True)}"')
+        start = _MINIMUM.search(html, max(heading, 0))
         if not start:
             return replace(job, description=html_to_text(html))
         end = _SECTION_END.search(html, start.end())

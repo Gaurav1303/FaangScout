@@ -84,6 +84,7 @@ _NUMBERED_LEVEL = re.compile(
     r"\b(?:engineer|developer|sde|swe|mts|member of technical staff|dev)\s*[-,]?\s*\(?\s*(iii|ii|iv|i|v|[1-5])\b",
     re.I,
 )
+_ALTERNATIVES = re.compile(r"/|\bor\b", re.I)
 #: Generic numbered levels that plainly mean SDE-1 / SDE-2 ("Engineer II").
 _NUMBER_SDE = {"i": 1, "1": 1, "ii": 2, "2": 2}
 _NUMBER_LEVELS = {
@@ -167,7 +168,10 @@ def assess(job: Job) -> ExperienceReq:
     level = ladder.label if ladder else ""
     found = mentions(job.description or "")
     if found:
-        multi_level = len({name for name, _, _ in levels}) > 1
+        # Open at two levels only when the title offers alternatives ("Software
+        # Engineer 2 / Senior Software Engineer") - "Senior Staff" and "Senior
+        # ... Manager" name two level words but one level.
+        multi_level = len({name for name, _, _ in levels}) > 1 and bool(_ALTERNATIVES.search(job.title or ""))
         pick = min if multi_level else max
         lo, hi, snippet = pick(found, key=lambda f: f[0])
         return ExperienceReq(min_years=lo, max_years=hi, basis="description", evidence=snippet, sde=sde, level=level)

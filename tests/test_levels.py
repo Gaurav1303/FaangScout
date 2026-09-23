@@ -129,3 +129,15 @@ class TestEitherCounts:
 )
 def test_google_ladder(title, sde):
     assert company_level("Google", title).sde == sde
+
+
+@pytest.mark.parametrize(
+    "title, expected",
+    [("Senior Staff Software Engineer, YouTube Create", 8),        # one level, two words: strictest wins
+     ("Senior Software Engineering Manager, Generative AI", 8),
+     ("Software Engineer 2 / Senior Software Engineer", 3)],        # real alternatives: lenient wins
+)
+def test_two_level_words_are_not_two_levels(title, expected):
+    text = ("Minimum qualifications:\n- 8 years of experience in software development.\n"
+            "- 3 years of experience in a technical leadership role.")
+    assert assess(_job("Google", title, text)).min_years == expected
