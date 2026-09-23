@@ -172,7 +172,7 @@ GitHub run it. `.github/workflows/scout.yml` does, on a GitHub-hosted runner:
 - Edit `scout.yaml` - your companies, role, and time window.
 - Make the repo private if you don't want your search visible: Actions logs and
   the results issue show which companies and role you're targeting.
-- The daily run (09:00 IST, `cron: "30 3 * * *"` in UTC) only fires from the
+- The daily run (2:00 PM IST, `cron: "30 8 * * *"` in UTC) only fires from the
   default branch, so it starts once the workflow is merged to `main`.
 - Run on demand: **Actions → FaangScout → Run workflow**, optionally
   overriding the role or hours, or picking `check` / `discover` mode.

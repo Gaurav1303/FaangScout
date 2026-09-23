@@ -1,7 +1,7 @@
 # Runs FaangScout on a GitHub runner, which (unlike some sandboxes) can reach
 # the career portals. Edit scout.yaml to change what it looks for.
 #
-#   - Daily at 09:00 IST: posts NEW openings as a comment on the
+#   - Daily at 14:00 IST: posts NEW openings as a comment on the
 #     "FaangScout results" issue, which emails you.
 #   - On demand: Actions tab -> FaangScout -> Run workflow.
 #   - On push to feature/firstDraft (search config, workflow, or code): a
@@ -30,7 +30,7 @@ on:
     branches: [feature/firstDraft]
     paths: [scout.yaml, .github/workflows/scout.yml, "faangscout/**", "scripts/**"]
   schedule:
-    - cron: "30 3 * * *"
+    - cron: "30 8 * * *"   # 14:00 IST (08:30 UTC)
 
 permissions:
   contents: read
