@@ -131,7 +131,8 @@ def make_enricher(client: httpx.Client, failures: list[str], *, max_workers: int
     Only jobs with no description and a ``detail_url`` are fetched, each
     provider limited to its ``detail_concurrency`` so a rate-limiting board
     (Eightfold) isn't hammered. A failed fetch keeps the job as-is - its
-    experience then reads "not stated" - and is counted in ``failures``.
+    experience then comes from the title, or reads "not stated" - and is
+    counted in ``failures``.
     """
     providers: dict[str, Provider] = {}
     gates: dict[str, threading.Semaphore] = {}
@@ -181,7 +182,7 @@ def _finish(
     if failures:
         warnings.append(
             f"couldn't fetch the full posting for {len(failures)} job(s); their experience "
-            f"reads 'not stated' (first: {failures[0]})"
+            f"requirement comes from the job title alone, or reads 'not stated' (first: {failures[0]})"
         )
 
     # Most recent first; undated jobs (only present when include_undated=True) sort last.
