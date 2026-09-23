@@ -132,3 +132,16 @@ def test_excluded_boards_are_never_tried():
     attempts = plan_attempts("LinkedIn", ("linkedin",), {"exclude": ["greenhouse:linkedin"]})
     assert ("greenhouse", {"board": "linkedin"}) not in attempts
     assert ("lever", {"site": "linkedin"}) in attempts
+
+
+def test_shipped_exclusions_cover_known_test_boards():
+    from faangscout.companies.registry import load_registry
+    from faangscout.discover import load_candidates, plan_attempts
+    from faangscout.normalize import collapse
+
+    registry, candidates = load_registry(), load_candidates()
+    for name, bad in [("Uber", ("smartrecruiters", {"company": "uber"})),
+                      ("LinkedIn", ("lever", {"site": "linkedin"})),
+                      ("LinkedIn", ("greenhouse", {"board": "linkedin"}))]:
+        entry = registry.lookup(name)
+        assert bad not in plan_attempts(entry.name, entry.aliases, candidates[collapse(name)])

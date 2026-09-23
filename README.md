@@ -224,9 +224,9 @@ India, according to levels.fyi and LeetCode Discuss offer threads (Sept
 | ~35-45 LPA | Flipkart, Meesho, Goldman Sachs (Associate), ServiceNow (IC2), Visa, Palo Alto Networks, Zscaler, PayPal, Razorpay, CRED, Groww, Myntra, Dream Sports, Tekion, BrowserStack, Autodesk, Expedia, Twilio, Harness, Zeta |
 | ~50 LPA and up | Swiggy, Uber, Atlassian, Confluent, Databricks, LinkedIn, Booking.com, Google |
 
-Of these, 20 have working boards. The other 8 are listed with a reason, and
+Of these, 21 have working boards. The other 7 are listed with a reason, and
 the email names them under "No match today":
-- Uber, ServiceNow: Cloudflare bot check
+- Uber: Cloudflare bot check
 - Booking.com: returns 403
 - Flipkart, Dream Sports, BrowserStack, LinkedIn: no readable job list
 - Myntra: site under maintenance

@@ -85,6 +85,8 @@ candidates:
     slugs: [zetasuite, zeta-suite, betterworldtechnology, zetatech]
   Uber:
     slugs: [uberinc]
+    # Both answer with test postings ("Test UAT"), not Uber's jobs.
+    exclude: [smartrecruiters:uber, smartrecruiters:uberinc]
   Atlassian:
     slugs: [atlassian]
     workday:
@@ -94,8 +96,9 @@ candidates:
   Flipkart:
     slugs: [flipkartinternet]
   LinkedIn:
-    # greenhouse:linkedin answers, but it's a test board ("Bug Bash Job", "123123").
-    exclude: [greenhouse:linkedin]
+    # Test boards, not LinkedIn's jobs: greenhouse ("Bug Bash Job", "123123"),
+    # lever ("Anirban jobReq 3 - public", "BO Primary 1").
+    exclude: [greenhouse:linkedin, lever:linkedin]
     workday:
       - {tenant: linkedin, sites: [LinkedIn, External]}
   Booking.com:
