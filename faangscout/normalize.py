@@ -38,6 +38,7 @@ ROLE_SYNONYMS: dict[str, tuple[str, ...]] = {
         "software engineer",
         "software developer",
         "software development engineer",
+        "software eng",  # Apple: "Software Eng - Content Management Systems"
         "sde",
         "swe",
         "programmer",

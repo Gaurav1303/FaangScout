@@ -288,6 +288,14 @@ class TestApple:
         provider.fetch({"location_codes": {"India": "india-INDC"}}, FetchHints(location="Germany"))
         assert seen == ["india-INDC", None]
 
+    def test_unparsed_location_falls_back_to_the_searched_one(self):
+        html = _apple_row("200684126-0321", "Software Eng - Content Management Systems", "Software and Services",
+                          "22 Sept 2026", "x").replace('class="table--advanced-search__location-sub"', 'class="other"')
+        provider = AppleJobsProvider(client=client_with(lambda r: httpx.Response(200, text=html)))
+        narrowed = provider.fetch({"location_codes": {"india": "india-INDC"}}, FetchHints(location="India"))
+        assert narrowed[0].locations == ("India",)
+        assert provider.fetch({}, FetchHints(location="India"))[0].locations == ()
+
     def test_stops_once_a_page_predates_the_window(self):
         since = datetime(2026, 9, 22, tzinfo=UTC)
         old = _apple_row("1", "Software Engineer", "Hardware", "1 Sept 2026", "Bengaluru")
@@ -386,3 +394,13 @@ class TestFirstSeenStore:
         path = tmp_path / "first_seen.json"
         path.write_text("not json")
         assert FirstSeenStore(path).boards == {}
+
+
+def test_software_eng_abbreviation_matches_role():
+    from faangscout.filters.role import RoleKeywordFilter
+    from faangscout.models import SearchCriteria
+
+    jobs = [Job(company="Apple", title=t, url=t, source="apple_jobs")
+            for t in ("Software Eng - Content Management Systems", "Software Engineering Manager - SCI")]
+    kept, _ = RoleKeywordFilter().apply(jobs, SearchCriteria.build(["Apple"], role="software engineer"))
+    assert [j.title for j in kept] == ["Software Eng - Content Management Systems"]

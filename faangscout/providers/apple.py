@@ -11,6 +11,10 @@ country, so when the search has a location filter that the board config
 maps to an Apple location code (``location_codes: {india: india-INDC}``),
 the search is narrowed to it server-side.
 
+Rows whose location markup the parser doesn't recognise, in a search
+already narrowed that way, get the searched location's name ("India"):
+Apple itself put them there.
+
 Posting ids aren't always plain digits (some carry a suffix such as
 ``114438210-3337``), so the id is anything up to the next slash; the slug after it is optional.
 """
@@ -43,13 +47,16 @@ class AppleJobsProvider(Provider):
         params: dict[str, object] = {"search": hints.role_query or "", "sort": "newest"}
         codes = {str(k).lower(): v for k, v in (config.get("location_codes") or {}).items()}
         location = config.get("location") or codes.get((hints.location or "").strip().lower())
+        fallback_location = ""
         if location:
             params["location"] = location
+            fallback_location = (hints.location or "").strip() if not config.get("location") else ""
 
         jobs: dict[str, Job] = {}
         for page in range(1, _MAX_PAGES + 1):
             html = self._get_text(f"{base}/{locale}/search", params={**params, "page": page})
-            rows = [self._to_job(m, company=company, base=base) for m in _ROW.finditer(html)]
+            rows = [self._to_job(m, company=company, base=base, fallback_location=fallback_location)
+                    for m in _ROW.finditer(html)]
             new = [j for j in rows if j.external_id not in jobs]
             for job in new:
                 jobs[job.external_id] = job
@@ -60,12 +67,13 @@ class AppleJobsProvider(Provider):
         return list(jobs.values())
 
     @staticmethod
-    def _to_job(m: re.Match, *, company: str, base: str) -> Job:
+    def _to_job(m: re.Match, *, company: str, base: str, fallback_location: str = "") -> Job:
         rest = m.group("rest")
         team = _TEAM.search(rest)
         date = _DATE.search(rest)
         location = _LOCATION.search(rest)
         loc = " ".join(html_to_text(location.group(1)).split()) if location else ""
+        loc = loc or fallback_location
         return Job(
             company=company,
             title=" ".join(html_to_text(m.group("title")).split()),
