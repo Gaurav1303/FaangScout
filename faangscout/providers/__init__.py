@@ -7,6 +7,21 @@ subclass and importing it below - nothing else in the codebase changes.
 """
 
 from .base import REGISTRY, FetchHints, Provider, ProviderError, get_provider  # noqa: F401
-from . import amazon, ashby, eightfold, greenhouse, lever, oracle_hcm, smartrecruiters, workday  # noqa: F401
+from . import (  # noqa: F401
+    amazon,
+    apple,
+    ashby,
+    eightfold,
+    greenhouse,
+    jobvite,
+    lever,
+    oracle_hcm,
+    phonepe,
+    rippling_ats,
+    sharechat,
+    smartrecruiters,
+    talentbrew,
+    workday,
+)
 
 __all__ = ["REGISTRY", "Provider", "ProviderError", "get_provider", "FetchHints"]

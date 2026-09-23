@@ -195,7 +195,10 @@ companies:
 
   - name: Apple
     aliases: [apple, apple inc]
-    sources: []  # in-house career site, no public ATS API
+    # In-house site; search results are server-rendered HTML (2026-09-23).
+    sources:
+      - provider: apple_jobs
+        config: {locale: en-in}
 
   # Amazon runs an in-house career site; its frontend's own JSON endpoint is
   # an internal API, not a supported public one - verify with `--check`.
@@ -236,7 +239,7 @@ companies:
 
   - name: Walmart
     aliases: [walmart, walmart global tech, walmart labs]
-    sources: []
+    sources: []  # search runs through a versioned GraphQL query - too brittle to rely on
 
   - name: NVIDIA
     aliases: [nvidia]
@@ -254,7 +257,10 @@ companies:
 
   - name: Intuit
     aliases: [intuit]
-    sources: []
+    # Radancy TalentBrew site; no posting dates, so dated by first sighting.
+    sources:
+      - provider: talentbrew
+        config: {host: jobs.intuit.com}
 
   - name: Qualcomm
     aliases: [qualcomm]
@@ -265,7 +271,11 @@ companies:
 
   - name: Nutanix
     aliases: [nutanix, nunatix]
-    sources: []
+    # careers.nutanix.com sits behind a bot check, but its Jobvite board
+    # (jobs.jobvite.com/nutanix) is public. No dates: dated by first sighting.
+    sources:
+      - provider: jobvite
+        config: {company: nutanix}
 
   - name: Rubrik
     aliases: [rubrik, rubirik]
@@ -291,7 +301,10 @@ companies:
 
   - name: PhonePe
     aliases: [phonepe, phone pe]
-    sources: []
+    # The careers page's own JSON feed; postings link SmartRecruiters (2026-09-23).
+    sources:
+      - provider: phonepe_feed
+        config: {}
 
   - name: Compass
     aliases: [compass, urban compass]
@@ -302,23 +315,29 @@ companies:
 
   - name: ShareChat
     aliases: [sharechat, share chat, moj]
-    sources: []
+    # sharechat.com/careers loads its list from its own API (2026-09-23).
+    sources:
+      - provider: sharechat
+        config: {}
 
   - name: Zepto
     aliases: [zepto]
-    sources: []
+    sources: []  # careers site blocks scripted access (CloudFront), 2026-09-23
 
   - name: Rippling
     aliases: [rippling]
-    sources: []
+    # Rippling's own ATS; no posting dates, so dated by first sighting.
+    sources:
+      - provider: rippling_ats
+        config: {board: rippling}
 
   - name: Arcesium
     aliases: [arcesium]
-    sources: []
+    sources: []  # careers site blocks scripted access (Vercel checkpoint), 2026-09-23
 
   - name: Indeed
     aliases: [indeed]
-    sources: []
+    sources: []  # careers site blocks scripted access, 2026-09-23
 
   - name: Sprinklr
     aliases: [sprinklr]
@@ -329,7 +348,7 @@ companies:
 
   - name: Zomato
     aliases: [zomato]
-    sources: []
+    sources: []  # no public job board found (Eternal's careers pages), 2026-09-23
 
 # No working board yet - in-house sites, or careers pages that block scripted
 # access. Listed so the report names them instead of silently skipping them.
@@ -343,11 +362,11 @@ companies:
 
   - name: D. E. Shaw
     aliases: [de shaw, deshaw, d e shaw, d.e. shaw]
-    sources: []
+    sources: []  # India site takes general applications only; no job list, 2026-09-23
 
   - name: MathWorks
     aliases: [mathworks, the mathworks, math works]
-    sources: []
+    sources: []  # careers site blocks scripted access (Access Denied), 2026-09-23
 
   - name: Kotak Mahindra Bank
     aliases: [kotak, kotak mahindra]

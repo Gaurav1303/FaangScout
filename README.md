@@ -194,8 +194,14 @@ it distinguishes "genuinely no new postings" from "this board token is stale."
 | `lever`, `ashby`, `smartrecruiters` | Palantir, OpenAI, Ramp, ... | exact |
 | `workday` | Adobe, Salesforce, NVIDIA, Mastercard, Cohesity, Sprinklr | day only ("Posted Today") |
 | `eightfold` | Microsoft, Qualcomm | posted/re-posted time |
-| `oracle_hcm` | JPMorgan Chase, DP World | day only |
+| `oracle_hcm` | JPMorgan Chase, DP World, Kotak | day only |
 | `amazon` | Amazon | day only |
+| `apple_jobs` | Apple (server-rendered search pages) | day only |
+| `phonepe_feed` | PhonePe (its careers page's JSON feed) | day only |
+| `sharechat` | ShareChat (its careers API) | exact |
+| `jobvite` | Nutanix | none - first seen |
+| `rippling_ats` | Rippling | none - first seen |
+| `talentbrew` | Intuit | none - first seen |
 
 Every one of these was confirmed against the live service from a GitHub
 Actions runner (September 2026) - including that the job links in the report
@@ -221,8 +227,27 @@ Transient failures (HTTP 429/502/503/504, timeouts) are retried with backoff,
 honouring `Retry-After`, so one rate-limited request doesn't drop a company
 from that day's report.
 
-Google, Meta, Apple, and Netflix have no endpoint FaangScout can read yet and
-remain listed with empty `sources`.
+**"First seen" sources** list open jobs with no date at all. With
+`--first-seen-file PATH` (the scheduled workflow keeps one in its cache),
+such a posting is dated by the first run that saw it, so it shows up in the
+next daily report after it's posted. The first run on a board records its
+existing backlog undated, so it isn't all reported as new. Without the file,
+these jobs have no date: the time window drops them unless you pass
+`--include-undated`.
+
+The Apple, PhonePe, ShareChat, Jobvite, Rippling, and TalentBrew sources were
+found by loading each careers page in a browser on a GitHub Actions runner
+and noting which request actually carries the job list.
+
+Not covered, and why (checked September 2026):
+
+| Company | Why |
+|---|---|
+| Indeed, MathWorks, Arcesium, Zepto | Careers site blocks scripted access (bot check). FaangScout doesn't try to get around that. |
+| Walmart | Search runs through a versioned GraphQL query that changes with site releases. |
+| D. E. Shaw (India) | No job list: the India site takes general applications only. |
+| Zomato (Eternal) | No public job board found. |
+| Google, Meta, Netflix | Not examined yet. |
 
 ## Try it offline (no internet needed)
 
@@ -286,10 +311,8 @@ CLI's "Source errors" section, or `sources[].error` in JSON/API output), never
 as "this company has no jobs." Treat the seed list as a starting point to
 verify against real board URLs, not a guarantee.
 
-True FAANG-scale in-house career sites - Google, Meta, Apple, Amazon
-corporate, Netflix - run custom career platforms with no public ATS API this
-tool can call, so they're listed with empty `sources` (resolved but
-unreachable) rather than guessed at.
+Companies with no working source (see "Not covered" above) are listed with
+empty `sources`, resolved but unreachable, rather than guessed at.
 
 ## Adding a provider
 

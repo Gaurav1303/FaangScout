@@ -12,6 +12,7 @@ import yaml
 from .check import check_sources
 from .companies.registry import load_registry
 from .discover import discover, to_registry_yaml
+from .first_seen import FirstSeenStore
 from .models import ScoredJob, SearchCriteria
 from .report import format_age, render_markdown
 from .scout import scout
@@ -101,6 +102,13 @@ def build_parser() -> argparse.ArgumentParser:
         help="JSON file of already-reported postings. Only jobs not in it are reported, and they are "
         "added to it - so a daily run never repeats a job",
     )
+    parser.add_argument(
+        "--first-seen-file",
+        metavar="PATH",
+        help="JSON file recording when each posting was first seen - the posting date for boards "
+        "that publish none (Jobvite, Rippling). A board's existing backlog is recorded undated on "
+        "its first run, so only later postings count as new",
+    )
     parser.add_argument("--markdown", action="store_true", help="Print results as a Markdown table")
     parser.add_argument(
         "--comment-out",
@@ -141,7 +149,10 @@ def main(argv: list[str] | None = None) -> int:
         experience=args.experience,
     )
     registry = load_registry(args.companies_file)
-    report = scout(criteria, registry=registry, probe_unknown=args.probe)
+    first_seen = FirstSeenStore(args.first_seen_file) if args.first_seen_file else None
+    report = scout(criteria, registry=registry, probe_unknown=args.probe, first_seen=first_seen)
+    if first_seen is not None:
+        first_seen.save()
 
     if args.seen_file:
         store = SeenStore(args.seen_file)

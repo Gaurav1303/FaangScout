@@ -343,6 +343,11 @@ def parse_timestamp(value: object, *, now: datetime | None = None) -> datetime |
     if re.fullmatch(r"-?\d{9,14}", text):
         return _from_epoch(float(text))
 
+    # .NET JSON dates: "/Date(1787184000000)/", optionally with an offset (PhonePe).
+    dotnet = re.fullmatch(r"/Date\((-?\d+)(?:[+-]\d{4})?\)/", text)
+    if dotnet:
+        return _from_epoch(float(dotnet.group(1)))
+
     iso = text.replace("Z", "+00:00")
     # Trim fractional seconds longer than 6 digits, which fromisoformat rejects.
     iso = re.sub(r"(\.\d{6})\d+", r"\1", iso)
@@ -352,6 +357,8 @@ def parse_timestamp(value: object, *, now: datetime | None = None) -> datetime |
     except ValueError:
         pass
 
+    # "23 Sept 2026" (Apple): strptime's %b only knows "Sep".
+    text = re.sub(r"\bSept\b", "Sep", text)
     for fmt in _DATE_FORMATS:
         try:
             return datetime.strptime(text, fmt).replace(tzinfo=UTC)

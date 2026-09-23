@@ -89,7 +89,19 @@ class Provider(ABC):
         return self._request_json("GET", url, **kwargs)
 
     def _request_json(self, method: str, url: str, **kwargs) -> object:
-        """Send a request and parse JSON, retrying transient failures.
+        """Send a request and parse JSON, retrying transient failures (see ``_request``)."""
+        response = self._request(method, url, **kwargs)
+        try:
+            return response.json()
+        except ValueError as exc:
+            raise ProviderError(f"{self.name}: {url} -> invalid JSON") from exc
+
+    def _get_text(self, url: str, **kwargs) -> str:
+        """GET a page (HTML) with the same retry behaviour as JSON requests."""
+        return self._request("GET", url, **kwargs).text
+
+    def _request(self, method: str, url: str, **kwargs) -> httpx.Response:
+        """Send a request, retrying transient failures; raise ProviderError otherwise.
 
         Retries rate limiting (429), gateway errors (502/503/504) and timeouts
         a couple of times with backoff, honouring ``Retry-After``. Without
@@ -115,10 +127,7 @@ class Provider(ABC):
                 response.raise_for_status()
             except httpx.HTTPStatusError as exc:
                 raise ProviderError(f"{self.name}: {url} -> HTTP {exc.response.status_code}") from exc
-            try:
-                return response.json()
-            except ValueError as exc:
-                raise ProviderError(f"{self.name}: {url} -> invalid JSON") from exc
+            return response
         raise AssertionError("unreachable")  # pragma: no cover
 
     #: Indirection so tests can retry without actually waiting.

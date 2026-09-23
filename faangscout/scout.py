@@ -17,6 +17,7 @@ import httpx
 from .companies.registry import CompanyRegistry, load_registry
 from .companies.resolver import resolve_companies
 from .filters import FilterPipeline
+from .first_seen import FirstSeenStore
 from .models import (
     FetchHints,
     Job,
@@ -40,12 +41,16 @@ def scout(
     probe_unknown: bool = False,
     max_workers: int = DEFAULT_MAX_WORKERS,
     filter_pipeline: FilterPipeline | None = None,
+    first_seen: FirstSeenStore | None = None,
 ) -> ScoutReport:
     """Run one search: resolve companies, fetch every board, filter, report.
 
     A single company's fetch failure never aborts the run - it becomes a
     failed :class:`SourceReport` entry, and every other company still gets
     fetched and filtered normally.
+
+    ``first_seen`` dates postings from boards that publish no dates; without
+    it they stay undated, and the time window drops them.
     """
     registry = registry or load_registry()
     pipeline = filter_pipeline or FilterPipeline()
@@ -79,6 +84,8 @@ def scout(
                 report.sources.append(src_report)
                 fetched_jobs.extend(jobs)
 
+    if first_seen is not None:
+        fetched_jobs = first_seen.date(fetched_jobs)
     return _finish(report, fetched_jobs, pipeline, criteria)
 
 

@@ -67,6 +67,11 @@ jobs:
         continue-on-error: true
         run: python scripts/probe.py scripts/probe_targets.yaml | tee probe.log
 
+      - name: Ad-hoc command (diagnostics)
+        if: hashFiles('scripts/adhoc.sh') != ''
+        continue-on-error: true
+        run: bash scripts/adhoc.sh 2>&1 | tee adhoc.log
+
       - name: Browser capture (diagnostics)
         if: hashFiles('scripts/browser_targets.yaml') != ''
         continue-on-error: true
@@ -89,7 +94,7 @@ jobs:
         if: env.MODE == 'search' && env.DELIVER == 'true'
         uses: actions/cache/restore@v4
         with:
-          path: .faangscout/seen.json
+          path: .faangscout
           key: faangscout-seen-${{ github.run_id }}
           restore-keys: faangscout-seen-
 
@@ -98,7 +103,9 @@ jobs:
         run: |
           args=(--config scout.yaml --companies-file discovered.yaml --json-out results.json
                 --markdown --comment-out comment.md --more-link "$RUN_URL")
-          if [ "$DELIVER" = "true" ]; then args+=(--seen-file .faangscout/seen.json); fi
+          if [ "$DELIVER" = "true" ]; then
+            args+=(--seen-file .faangscout/seen.json --first-seen-file .faangscout/first_seen.json)
+          fi
           if [ -n "$ROLE" ]; then args+=(--role "$ROLE"); fi
           if [ -n "$HOURS" ]; then args+=(--hours "$HOURS"); fi
           faangscout "${args[@]}" > results.md
@@ -109,7 +116,7 @@ jobs:
         if: env.MODE == 'search' && env.DELIVER == 'true'
         uses: actions/cache/save@v4
         with:
-          path: .faangscout/seen.json
+          path: .faangscout
           key: faangscout-seen-${{ github.run_id }}
 
       - name: Post new openings to the results issue
@@ -143,6 +150,7 @@ jobs:
             check.log
             probe.log
             browser.log
+            adhoc.log
             results.md
             results.json
           if-no-files-found: ignore

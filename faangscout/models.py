@@ -27,6 +27,9 @@ class Precision(str, Enum):
     #: the following 24h - the time-window filter widens accordingly rather
     #: than dropping this morning's job because it parsed as "32h ago".
     DATE_ONLY = "date_only"
+    #: The board publishes no dates (Jobvite, Rippling ATS). ``posted_at`` is
+    #: when FaangScout first saw the posting - see ``first_seen.py``.
+    FIRST_SEEN = "first_seen"
     UNKNOWN = "unknown"
 
 
