@@ -5,6 +5,8 @@
 #            SmartRecruiters, in order. Slugs derived from the name and
 #            aliases are always tried too - list only the non-obvious ones
 #            (old brand names, legal entities).
+#   exclude: "provider:slug" pairs never to accept - a same-named but
+#            unrelated (or test) board, e.g. greenhouse:linkedin.
 #   workday: tenant/site pairs to try. Workday assigns each tenant a numbered
 #            host (wd1, wd5, ...) that can't be derived from the name; list
 #            the likely one under `hosts` and discovery falls back to the
@@ -92,6 +94,8 @@ candidates:
   Flipkart:
     slugs: [flipkartinternet]
   LinkedIn:
+    # greenhouse:linkedin answers, but it's a test board ("Bug Bash Job", "123123").
+    exclude: [greenhouse:linkedin]
     workday:
       - {tenant: linkedin, sites: [LinkedIn, External]}
   Booking.com:

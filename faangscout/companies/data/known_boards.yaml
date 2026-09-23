@@ -409,7 +409,10 @@ companies:
 
   - name: Meesho
     aliases: [meesho]
-    sources: []
+    # Confirmed by live discovery (GitHub Actions run 35882068263).
+    sources:
+      - provider: lever
+        config: {site: meesho}
 
   - name: Goldman Sachs
     aliases: [goldman sachs, goldman]
@@ -429,23 +432,38 @@ companies:
 
   - name: Zscaler
     aliases: [zscaler]
-    sources: []
+    # Confirmed by live discovery (GitHub Actions run 35882068263).
+    sources:
+      - provider: greenhouse
+        config: {board: zscaler}
 
   - name: PayPal
     aliases: [paypal, pay pal]
-    sources: []
+    # Confirmed by live discovery (GitHub Actions run 35882068263).
+    sources:
+      - provider: workday
+        config: {host: paypal.wd1.myworkdayjobs.com, tenant: paypal, site: jobs}
 
   - name: Razorpay
     aliases: [razorpay, razor pay]
-    sources: []
+    # Confirmed by live discovery (GitHub Actions run 35882068263).
+    sources:
+      - provider: greenhouse
+        config: {board: razorpaysoftwareprivatelimited}
 
   - name: CRED
     aliases: [cred, dreamplug]
-    sources: []
+    # Confirmed by live discovery (GitHub Actions run 35882068263).
+    sources:
+      - provider: lever
+        config: {site: cred}
 
   - name: Groww
     aliases: [groww]
-    sources: []
+    # Confirmed by live discovery (GitHub Actions run 35882068263).
+    sources:
+      - provider: greenhouse
+        config: {board: groww}
 
   - name: Myntra
     aliases: [myntra]
@@ -457,7 +475,10 @@ companies:
 
   - name: Tekion
     aliases: [tekion]
-    sources: []
+    # Confirmed by live discovery (GitHub Actions run 35882068263).
+    sources:
+      - provider: ashby
+        config: {board: tekion}
 
   - name: BrowserStack
     aliases: [browserstack, browser stack]
@@ -465,23 +486,38 @@ companies:
 
   - name: Autodesk
     aliases: [autodesk]
-    sources: []
+    # Confirmed by live discovery (GitHub Actions run 35882068263).
+    sources:
+      - provider: workday
+        config: {host: autodesk.wd1.myworkdayjobs.com, tenant: autodesk, site: Ext}
 
   - name: Expedia
     aliases: [expedia, expedia group]
-    sources: []
+    # Confirmed by live discovery (GitHub Actions run 35882068263).
+    sources:
+      - provider: workday
+        config: {host: expedia.wd108.myworkdayjobs.com, tenant: expedia, site: search}
 
   - name: Twilio
     aliases: [twilio]
-    sources: []
+    # Confirmed by live discovery (GitHub Actions run 35882068263).
+    sources:
+      - provider: greenhouse
+        config: {board: twilio}
 
   - name: Harness
     aliases: [harness, harness io, harness.io]
-    sources: []
+    # Confirmed by live discovery (GitHub Actions run 35882068263).
+    sources:
+      - provider: greenhouse
+        config: {board: harnessinc}
 
   - name: Zeta
     aliases: [zeta, zeta suite]
-    sources: []
+    # Confirmed by live discovery (GitHub Actions run 35882068263).
+    sources:
+      - provider: lever
+        config: {site: zeta}
 
   - name: Uber
     aliases: [uber]
@@ -493,7 +529,10 @@ companies:
 
   - name: Confluent
     aliases: [confluent]
-    sources: []
+    # Confirmed by live discovery (GitHub Actions run 35882068263).
+    sources:
+      - provider: ashby
+        config: {board: confluent}
 
   - name: LinkedIn
     aliases: [linkedin, linked in]

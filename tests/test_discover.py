@@ -124,3 +124,11 @@ class TestDiscover:
         assert yaml.safe_load(path.read_text())["companies"][0]["name"] == "Acme"
         merged = load_registry(path)
         assert merged.lookup("acme").sources[0].config == {"board": "acme"}
+
+
+def test_excluded_boards_are_never_tried():
+    from faangscout.discover import plan_attempts
+
+    attempts = plan_attempts("LinkedIn", ("linkedin",), {"exclude": ["greenhouse:linkedin"]})
+    assert ("greenhouse", {"board": "linkedin"}) not in attempts
+    assert ("lever", {"site": "linkedin"}) in attempts

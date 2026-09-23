@@ -166,6 +166,31 @@ class TestSmartRecruiters:
         assert len(jobs) == 120
         assert calls == [0, 100]
 
+    def test_ref_is_a_url_string_and_details_come_from_it(self):
+        # Real listings carry "ref" as the posting's API URL - a string.
+        ref = "https://api.smartrecruiters.com/v1/companies/Visa/postings/744000081234567"
+        listing = {
+            "id": "744000081234567", "name": "Software Engineer", "ref": ref,
+            "company": {"identifier": "Visa", "name": "Visa"},
+            "releasedDate": "2026-09-22T10:00:00.000Z",
+            "location": {"city": "Bengaluru", "country": "in", "remote": False},
+        }
+
+        def handler(request):
+            if str(request.url) == ref:
+                return httpx.Response(200, json={"jobAd": {"sections": {
+                    "jobDescription": {"text": "<p>Build payments.</p>"},
+                    "qualifications": {"text": "<ul><li>3+ years of experience</li></ul>"},
+                }}})
+            return httpx.Response(200, json={"content": [listing], "totalFound": 1})
+
+        provider = SmartRecruitersProvider(client=client_with(handler))
+        job = provider.fetch({"company": "visa", "company_name": "Visa"}, HINTS)[0]
+        assert job.url == "https://jobs.smartrecruiters.com/Visa/744000081234567"
+        assert job.detail_url == ref
+        detailed = provider.fetch_details(job)
+        assert "Build payments." in detailed.description and "3+ years of experience" in detailed.description
+
 
 class TestWorkday:
     def test_happy_path_and_pagination_stop(self):
