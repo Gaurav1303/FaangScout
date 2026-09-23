@@ -33,7 +33,11 @@ _BASE = "https://jobs.apple.com"
 _ROW = re.compile(r'<h3><a [^>]*href="(?P<href>/[^"]+/details/(?P<id>[^/"?]+)(?:/[^"?]*)?)[^"]*"[^>]*>(?P<title>.*?)</a></h3>(?P<rest>.*?)(?=<h3><a |$)', re.S)
 _TEAM = re.compile(r'class="team-name[^"]*">(.*?)</span>', re.S)
 _DATE = re.compile(r'class="job-posted-date"[^>]*>(.*?)</span>', re.S)
-_LOCATION = re.compile(r'class="table--advanced-search__location-sub"[^>]*>(.*?)</span>', re.S)
+# Retail rows: class="table--advanced-search__location-sub"; corporate rows:
+# id="search-store-name-container-N" with no class.
+_LOCATION = re.compile(
+    r'<span (?:class="table--advanced-search__location-sub"|id="search-store-name-container-\d+")[^>]*>(.*?)</span>', re.S
+)
 _MAX_PAGES = 20
 _DAY = timedelta(days=1)
 

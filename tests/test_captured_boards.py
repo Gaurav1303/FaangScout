@@ -288,6 +288,14 @@ class TestApple:
         provider.fetch({"location_codes": {"India": "india-INDC"}}, FetchHints(location="Germany"))
         assert seen == ["india-INDC", None]
 
+    def test_corporate_row_location(self):
+        html = _apple_row("200684126-0321", "Software Eng - Content Management Systems", "Software and Services",
+                          "22 Sept 2026", "x").replace(
+            '<span class="table--advanced-search__location-sub" id="search-store-name-1">x</span>',
+            '<span id="search-store-name-container-1">Bengaluru</span>')
+        provider = AppleJobsProvider(client=client_with(lambda r: httpx.Response(200, text=html)))
+        assert provider.fetch({}, HINTS)[0].locations == ("Bengaluru",)
+
     def test_unparsed_location_falls_back_to_the_searched_one(self):
         html = _apple_row("200684126-0321", "Software Eng - Content Management Systems", "Software and Services",
                           "22 Sept 2026", "x").replace('class="table--advanced-search__location-sub"', 'class="other"')
