@@ -46,7 +46,7 @@ class TalentBrewProvider(Provider):
 
         jobs: dict[str, Job] = {}
         total_pages = 1
-        for page in range(1, _MAX_PAGES + 1):
+        for page in range(1, int(config.get("max_pages", _MAX_PAGES)) + 1):
             html = self._get_text(f"{base}/search-jobs/{quote(keyword)}", params={"p": page} if page > 1 else None)
             if page == 1:
                 m = _TOTAL_PAGES.search(html)

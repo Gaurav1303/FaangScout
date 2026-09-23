@@ -522,3 +522,79 @@ class TestGoldmanSachs:
         provider = GoldmanSachsProvider(client=client_with(lambda r: httpx.Response(200, text=page)))
         job = Job(company="Goldman Sachs", title="t", url="u", source="goldman_sachs", detail_url="https://higher.gs.com/roles/1")
         assert provider.fetch_details(job).description.strip() == "3+ years of experience in Java"
+
+
+def _google_card(job_id, title, location, quals):
+    return (f'<div class="sMn82b"><h3 class="QJPWVe">{title}</h3></div><div class="wVoYLb"><div class="op1BBf">'
+            f'<span class="RP7SMd"><i class="google-material-icons" aria-hidden=\'true\'>corporate_fare</i><span>Google</span></span>'
+            f'<span class="pwO9Dc vo5qdf"><i class="google-material-icons notranslate VfPpkd-kBDsod dPX0he" aria-hidden=\'true\'>place</i>'
+            f'<span class="r0wTof ">{location}</span></span></div>'
+            f'<div><h4>Minimum qualifications</h4><ul>{quals}</ul></div>'
+            f'<a class="WpHeLc" href="jobs/results/{job_id}-slug?location=India&amp;q=software+engineer&amp;sort_by=date" '
+            f'aria-label="Learn more about {title}"></a></div>')
+
+
+class TestGoogleCareers:
+    def test_parses_cards_and_pages(self):
+        from faangscout.providers.google_careers import GoogleCareersProvider
+
+        pages = {
+            "1": _google_card("101994312325046982", "Software Engineer III, Infrastructure", "Hyderabad, Telangana, India",
+                              "<li>Bachelor's degree or equivalent practical experience.</li><li>2 years of experience with software development.</li>"),
+            "2": _google_card("136350752158163654", "Software Engineer II", "Bengaluru, Karnataka, India", "<li>1 year of experience.</li>"),
+            "3": "",
+        }
+
+        def handler(request):
+            assert request.url.params["sort_by"] == "date" and request.url.params["location"] == "India"
+            return httpx.Response(200, text=f"<html>jobs/results/ {pages[request.url.params['page']]}</html>")
+
+        jobs = GoogleCareersProvider(client=client_with(handler)).fetch(
+            {}, FetchHints(role_query="software engineer", location="India"))
+        assert [j.external_id for j in jobs] == ["101994312325046982", "136350752158163654"]
+        job = jobs[0]
+        assert job.title == "Software Engineer III, Infrastructure"
+        assert job.url == "https://www.google.com/about/careers/applications/jobs/results/101994312325046982-slug"
+        assert job.locations == ("Hyderabad, Telangana, India",)
+        assert "2 years of experience with software development." in job.description
+        assert job.precision == Precision.FIRST_SEEN
+
+    def test_layout_change_raises(self):
+        from faangscout.providers.google_careers import GoogleCareersProvider
+
+        provider = GoogleCareersProvider(client=client_with(lambda r: httpx.Response(200, text="<html>nothing</html>")))
+        with pytest.raises(ProviderError):
+            provider.fetch({}, HINTS)
+
+
+class TestMyNextHire:
+    REQ = {"reqId": 28593, "statusId": 3, "buName": "Technology", "reqTitle": "Software Development Engineer II",
+           "expMin": 3.0, "expMax": 5.0, "location": "Sumadhura Capitol Towers",
+           "locationAddress": "Tower 1, Sumadhura Capitol Towers, K. R. Puram Hobli, Bengaluru",
+           "jdDisplay": "About Swiggy:\n\nBuild things.", "approvedOn": "2026-08-24T10:49:57.169+0000",
+           "employmentType": "full_time", "careerStream": "Engineering", "designation": "SDE II"}
+
+    def test_parses_requisitions(self):
+        import base64
+        import json as _json
+        from faangscout.providers.mynexthire import MyNextHireProvider
+
+        def handler(request):
+            assert request.method == "POST" and str(request.url) == "https://swiggy.mynexthire.com/employer/careers/reqlist/get"
+            assert _json.loads(request.content) == {"source": "careers", "code": "", "filterByBuId": -1}
+            return httpx.Response(200, json={"requesterTitle": "", "reqDetailsBOList": [self.REQ]})
+
+        job = MyNextHireProvider(client=client_with(handler)).fetch({"tenant": "swiggy", "company_name": "Swiggy"}, HINTS)[0]
+        assert job.title == "Software Development Engineer II"
+        assert job.locations == ("Tower 1, Sumadhura Capitol Towers, K. R. Puram Hobli, Bengaluru",)
+        assert job.posted_at == datetime(2026, 8, 24, 10, 49, 57, 169000, tzinfo=UTC)
+        assert job.description.startswith("Experience required: 3-5 years")
+        assert job.department == "Engineering"
+        token = job.url.split("p=", 1)[1]
+        assert _json.loads(base64.b64decode(token))["reqId"] == 28593
+
+    def test_requires_tenant(self):
+        from faangscout.providers.mynexthire import MyNextHireProvider
+
+        with pytest.raises(ProviderError):
+            MyNextHireProvider(client=client_with(lambda r: httpx.Response(200))).fetch({}, HINTS)

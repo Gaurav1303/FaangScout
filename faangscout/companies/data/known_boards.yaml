@@ -188,8 +188,10 @@ companies:
 
   - name: Google
     aliases: [google, alphabet]
-    sources: []
-    note: "in-house career site, no public ATS API"
+    # Server-rendered search results (2026-09-23).
+    sources:
+      - provider: google_careers
+        config: {}
 
   - name: Meta
     aliases: [meta, facebook]
@@ -402,10 +404,14 @@ companies:
   - name: Flipkart
     aliases: [flipkart]
     sources: []
+    note: "careers site loads no job data a script can read"  # checked 2026-09-23
 
   - name: Swiggy
     aliases: [swiggy, bundl technologies]
-    sources: []
+    # careers.swiggy.com loads its list from MyNextHire (browser capture, 2026-09-23).
+    sources:
+      - provider: mynexthire
+        config: {tenant: swiggy}
 
   - name: Meesho
     aliases: [meesho]
@@ -424,6 +430,7 @@ companies:
   - name: ServiceNow
     aliases: [servicenow, service now]
     sources: []
+    note: "careers site blocks scripted access (Cloudflare)"  # checked 2026-09-23
 
   - name: Visa
     aliases: [visa, visa inc]
@@ -437,7 +444,8 @@ companies:
     # TalentBrew site (browser capture, 2026-09-23); no dates, dated by first sighting.
     sources:
       - provider: talentbrew
-        config: {host: jobs.paloaltonetworks.com, base_url: "https://jobs.paloaltonetworks.com/en"}
+        # ~50 pages of 15 for "software engineer", relevance-ordered, so read them all.
+        config: {host: jobs.paloaltonetworks.com, base_url: "https://jobs.paloaltonetworks.com/en", max_pages: 60}
 
   - name: Zscaler
     aliases: [zscaler]
@@ -477,10 +485,12 @@ companies:
   - name: Myntra
     aliases: [myntra]
     sources: []
+    note: "careers site was down for maintenance when checked"  # checked 2026-09-23
 
   - name: Dream Sports
     aliases: [dream sports, dream11, dream 11]
     sources: []
+    note: "no public job list found"  # checked 2026-09-23
 
   - name: Tekion
     aliases: [tekion]
@@ -492,6 +502,7 @@ companies:
   - name: BrowserStack
     aliases: [browserstack, browser stack]
     sources: []
+    note: "no public job list found"  # checked 2026-09-23
 
   - name: Autodesk
     aliases: [autodesk]
@@ -531,6 +542,7 @@ companies:
   - name: Uber
     aliases: [uber]
     sources: []
+    note: "careers site blocks scripted access (Cloudflare)"  # checked 2026-09-23
 
   - name: Atlassian
     aliases: [atlassian]
@@ -549,7 +561,9 @@ companies:
   - name: LinkedIn
     aliases: [linkedin, linked in]
     sources: []
+    note: "no public job list found (careers page loads none)"  # checked 2026-09-23
 
   - name: Booking.com
     aliases: [booking.com, booking, booking holdings]
     sources: []
+    note: "careers site blocks scripted access (403)"  # checked 2026-09-23
