@@ -276,7 +276,11 @@ companies:
 
   - name: Postman
     aliases: [postman]
-    sources: []
+    # Workday on wd108 (outside discovery's host list); its careers page links
+    # postman.wd108.myworkdayjobs.com/careers - seen in a browser capture 2026-09-23.
+    sources:
+      - provider: workday
+        config: {host: postman.wd108.myworkdayjobs.com, tenant: postman, site: careers}
 
   - name: Cohesity
     aliases: [cohesity]

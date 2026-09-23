@@ -16,12 +16,17 @@ Two kinds of target:
                URL after redirects, and the page title
   text         a JSON field holding HTML (``field: data.jobDescription``),
                rendered to text lines the way the experience filter sees them
+  items        sample entries from a JSON list (``path: results``, optional
+               ``where: {status: PUBLISHED}``), printed in full, plus the
+               distinct values of ``distinct`` across all entries
+  around       text surrounding each match of ``pattern`` in the page body
   shape        a JSON response's structure: keys, types, list lengths -
                for finding pagination and total-count fields
 """
 
 from __future__ import annotations
 
+import json
 import re
 import sys
 from pathlib import Path
@@ -155,6 +160,46 @@ def probe_text(client: httpx.Client, target: dict) -> None:
         print(f"  {i:3} | {line[:220]!r}")
 
 
+def _dig(value, path: str):
+    for part in path.split(".") if path else []:
+        value = value[int(part)] if isinstance(value, list) else (value or {}).get(part)
+    return value
+
+
+def probe_items(client: httpx.Client, target: dict) -> None:
+    try:
+        r = client.get(target["url"])
+        items = _dig(r.json(), target.get("path", ""))
+    except (httpx.HTTPError, ValueError) as exc:
+        print(f"  ERROR {exc!r}")
+        return
+    items = items if isinstance(items, list) else [items]
+    print(f"  {r.status_code}; {len(items)} items")
+    if target.get("distinct"):
+        key = target["distinct"]
+        counts: dict = {}
+        for it in items:
+            counts[str((it or {}).get(key))] = counts.get(str((it or {}).get(key)), 0) + 1
+        print(f"  distinct {key}: {counts}")
+    where = target.get("where") or {}
+    chosen = [it for it in items if all(str((it or {}).get(k)) == str(v) for k, v in where.items())]
+    for it in chosen[: int(target.get("count", 2))]:
+        print(f"  item: {squash(json.dumps(it, ensure_ascii=False), int(target.get('limit', 1500)))}")
+
+
+def probe_around(client: httpx.Client, target: dict) -> None:
+    try:
+        r = client.get(target["url"])
+    except httpx.HTTPError as exc:
+        print(f"  ERROR {exc!r}")
+        return
+    matches = list(re.finditer(target["pattern"], r.text, re.I))
+    print(f"  {r.status_code} final={r.url} ({len(r.text)} chars); {len(matches)} matches")
+    ctx = int(target.get("context", 300))
+    for m in matches[: int(target.get("count", 3))]:
+        print(f"  ...{squash(r.text[max(0, m.start() - ctx): m.end() + ctx], 2 * ctx + 200)}...")
+
+
 def probe_shape(client: httpx.Client, target: dict) -> None:
     method = target.get("method", "GET").upper()
     try:
@@ -172,7 +217,8 @@ def main(path: str) -> int:
         for target in targets:
             kind = target.get("kind", "raw")
             print(f"=== [{kind}] {target.get('name', '')} {target['url']}")
-            {"fingerprint": probe_fingerprint, "shape": probe_shape, "link": probe_link, "text": probe_text}.get(kind, probe_raw)(client, target)
+            {"fingerprint": probe_fingerprint, "shape": probe_shape, "link": probe_link, "text": probe_text,
+             "items": probe_items, "around": probe_around}.get(kind, probe_raw)(client, target)
     return 0
 
 

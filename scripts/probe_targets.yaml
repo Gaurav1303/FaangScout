@@ -1,0 +1,45 @@
+# Diagnostic targets for scripts/probe.py - read by the "Probe" workflow step.
+# Delete this file once the findings are applied; the step is skipped without it.
+# Round 2 after the browser capture (run 35828783254): exact data for the job
+# sources it found, and how the remaining pages embed their listings.
+
+# PhonePe feed: what does a published posting look like (link? id?)
+- {name: PhonePe feed, kind: items, url: "https://www.phonepe.com/apollo/job-postings/latest.json",
+   path: results, distinct: status, where: {status: PUBLISHED}, count: 2}
+- {name: PhonePe feed any, kind: items, url: "https://www.phonepe.com/apollo/job-postings/latest.json",
+   path: results, distinct: type, count: 1, limit: 400}
+
+# ShareChat: every field of one requisition (posting date? link?)
+- {name: ShareChat list, kind: items, url: "https://sharechat.com/api/careersList?limit=100",
+   path: data.careersList.0.data, count: 1, limit: 2500}
+- {name: ShareChat teams, kind: items, url: "https://sharechat.com/api/careersList?limit=100",
+   path: data.careersList, distinct: title, count: 0}
+
+# Nutanix Jobvite: markup of a job row (title, location, date?)
+- {name: Nutanix jobvite rows, kind: around, url: "https://jobs.jobvite.com/nutanix/jobs",
+   pattern: "/nutanix/job/o", context: 350, count: 2}
+- {name: Nutanix job page, kind: around, url: "https://jobs.jobvite.com/nutanix/job/oslPAfwW",
+   pattern: "(?:posted|date|experience|years)", context: 200, count: 4}
+
+# Intuit (TalentBrew): markup of a search result
+- {name: Intuit results, kind: around, url: "https://jobs.intuit.com/search-jobs/software%20engineer",
+   pattern: "data-job-id|job-date-posted|/job/[a-z-]+/", context: 350, count: 3}
+
+# Apple: where the search results live in the page
+- {name: Apple results, kind: around, url: "https://jobs.apple.com/en-in/search?search=software%20engineer&sort=newest",
+   pattern: "positionId|postingTitle|/details/", context: 300, count: 3}
+
+# Rippling: job data in the open-roles page
+- {name: Rippling roles, kind: around, url: "https://www.rippling.com/en-IN/careers/open-roles",
+   pattern: "ats\\.rippling\\.com/rippling/jobs/", context: 400, count: 2}
+- {name: Rippling ATS api, url: "https://ats.rippling.com/api/v2/board/rippling/jobs", limit: 600}
+
+# D. E. Shaw India / Zomato (Eternal) / Kotak: where do "view openings" links go?
+- {name: DE Shaw India work-with-us, kind: around, url: "https://www.deshawindia.com/careers/work-with-us",
+   pattern: "href=\\"https?://[^\\"]*(?:job|career|apply|opening|position)[^\\"]*\\"", context: 60, count: 8}
+- {name: Eternal careers links, kind: around, url: "https://www.eternal.com/careers/",
+   pattern: "href=\\"https?://(?!www\\.eternal\\.com)[^\\"]+\\"", context: 40, count: 12}
+- {name: Kotak apply page, kind: fingerprint, url: "https://www.kotak.bank.in/en/about-us/careers/career-apply-now.html"}
+- {name: Kotak apply links, kind: around, url: "https://www.kotak.bank.in/en/about-us/careers/career-apply-now.html",
+   pattern: "href=\\"https?://[^\\"]*(?:job|career|apply|oraclecloud|darwinbox)[^\\"]*\\"", context: 40, count: 8}
+- {name: Oracle CX site from search, kind: fingerprint, url: "https://hcbt.fa.em2.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX/jobs"}

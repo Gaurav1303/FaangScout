@@ -33,8 +33,6 @@ candidates:
     slugs: [zeptonow, kiranakart]
   PhonePe:
     slugs: [phonepeindia]
-  Postman:
-    slugs: [postmanlabs]
   Zomato:
     # Not 'eternal': that Lever board is an unrelated NYC/SF company.
     slugs: [zomatoltd]
