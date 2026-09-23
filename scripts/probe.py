@@ -18,7 +18,8 @@ Two kinds of target:
                rendered to text lines the way the experience filter sees them
   items        sample entries from a JSON list (``path: results``, optional
                ``where: {status: PUBLISHED}``), printed in full, plus the
-               distinct values of ``distinct`` across all entries
+               distinct values of ``distinct`` across all entries. Takes
+               ``method: POST`` and a ``json`` body for POST-only APIs
   around       text surrounding each match of ``pattern`` in the page body
   shape        a JSON response's structure: keys, types, list lengths -
                for finding pagination and total-count fields
@@ -168,7 +169,7 @@ def _dig(value, path: str):
 
 def probe_items(client: httpx.Client, target: dict) -> None:
     try:
-        r = client.get(target["url"])
+        r = client.request(target.get("method", "GET").upper(), target["url"], json=target.get("json"))
         items = _dig(r.json(), target.get("path", ""))
     except (httpx.HTTPError, ValueError) as exc:
         print(f"  ERROR {exc!r}")

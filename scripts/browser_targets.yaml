@@ -1,28 +1,3 @@
-- name: Flipkart
-  url: https://www.flipkartcareers.com/#!/joblist
-- name: Swiggy
-  url: https://careers.swiggy.com/#/careers
 - name: Goldman Sachs
   url: https://higher.gs.com/results?LOCATION=Bengaluru&page=1&sort=POSTED_DATE
-- name: ServiceNow
-  url: https://careers.servicenow.com/jobs/?search=software+engineer&country=India
-- name: Visa
-  url: https://corporate.visa.com/en/jobs/?cities=Bangalore
-- name: Palo Alto Networks
-  url: https://jobs.paloaltonetworks.com/en/jobs/?search=software+engineer&country=India
-- name: Myntra
-  url: https://careers.myntra.com/job-listing/
-- name: Dream Sports
-  url: https://dreamsports.group/careers/
-- name: BrowserStack
-  url: https://www.browserstack.com/careers
-- name: Uber
-  url: https://www.uber.com/us/en/careers/list/?location=IND--Karnataka-Bangalore&department=Engineering
-- name: Atlassian
-  url: https://www.atlassian.com/company/careers/all-jobs?team=Engineering&location=India
-- name: LinkedIn
-  url: https://careers.linkedin.com/jobs
-- name: Booking.com
-  url: https://jobs.booking.com/booking/jobs?keywords=software%20engineer&location=Bengaluru
-- name: Google
-  url: https://www.google.com/about/careers/applications/jobs/results/?location=India&q=software%20engineer
+  full: GetRoles"|roleSearch

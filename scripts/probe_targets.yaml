@@ -1,0 +1,47 @@
+- kind: items
+  name: Swiggy MyNextHire
+  method: POST
+  url: https://swiggy.mynexthire.com/employer/careers/reqlist/get
+  json:
+    source: careers
+    code: ''
+    filterByBuId: -1
+  path: reqDetailsBOList
+  count: 2
+  limit: 2500
+  distinct: statusId
+- kind: items
+  name: Atlassian listings
+  url: https://www.atlassian.com/endpoint/careers/listings
+  path: ''
+  count: 1
+  limit: 3000
+  distinct: category
+- kind: around
+  name: Palo Alto TalentBrew search
+  url: https://jobs.paloaltonetworks.com/en/search-jobs/software%20engineer
+  pattern: search-results-list|data-total-pages|href=\"/en/job/
+  count: 4
+  context: 500
+- kind: around
+  name: Google results (newest)
+  url: https://www.google.com/about/careers/applications/jobs/results/?location=India&q=software%20engineer&sort_by=date
+  pattern: jobs/results/\d+
+  count: 3
+  context: 900
+- kind: around
+  name: Google results paging
+  url: https://www.google.com/about/careers/applications/jobs/results/?location=India&q=software%20engineer&sort_by=date&page=2
+  pattern: jobs/results/\d+|page=3|of \d+
+  count: 3
+  context: 300
+- kind: raw
+  name: Visa Workday
+  method: POST
+  url: https://visa.wd5.myworkdayjobs.com/wday/cxs/visa/Visa/jobs
+  json:
+    appliedFacets: {}
+    limit: 2
+    offset: 0
+    searchText: software engineer
+  limit: 800

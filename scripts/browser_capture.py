@@ -60,7 +60,7 @@ def capture(page, target: dict) -> None:
         request = response.request
         responses.append({
             "url": response.url, "method": request.method, "status": response.status,
-            "post": (request.post_data or "")[:600], "size": len(body), "body": body,
+            "post": request.post_data or "", "size": len(body), "body": body,
         })
 
     page.on("response", on_response)
@@ -98,10 +98,13 @@ def capture(page, target: dict) -> None:
         except ValueError:
             parsed = "unparseable"
         print(f"    [{r['status']}] {r['method']} {r['url'][:220]} ({r['size']} bytes)")
+        # ``full: <regex>`` prints matching requests' whole POST body (a
+        # GraphQL query, say) and more of the response.
+        full = bool(target.get("full")) and re.search(target["full"], r["url"] + " " + r["post"])
         if r["post"]:
-            print(f"        post: {r['post'][:400]}")
+            print(f"        post: {r['post'][:8000 if full else 400]}")
         print(f"        shape: {parsed[:500]}")
-        snippet = re.sub(r"\s+", " ", r["body"][:SNIPPET])
+        snippet = re.sub(r"\s+", " ", r["body"][:4000 if full else SNIPPET])
         print(f"        body: {snippet}")
 
 
