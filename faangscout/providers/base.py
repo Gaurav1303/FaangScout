@@ -67,6 +67,18 @@ class Provider(ABC):
         """
         raise NotImplementedError
 
+    #: How many detail requests to run at once against this provider.
+    detail_concurrency: int = 4
+
+    def fetch_details(self, job: Job) -> Job:
+        """Return ``job`` with ``description`` filled in from ``job.detail_url``.
+
+        Only called for jobs whose listing had no description, and only once
+        they have passed the cheaper filters. Providers whose listings already
+        carry descriptions keep this no-op default.
+        """
+        return job
+
     async def afetch(self, config: dict, hints: FetchHints) -> list[Job]:
         """Default async wrapper: runs the sync :meth:`fetch` in a thread."""
         import asyncio

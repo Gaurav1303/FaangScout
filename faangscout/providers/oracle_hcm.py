@@ -15,11 +15,21 @@ identified from its careers page on 2026-09-23.
 
 from __future__ import annotations
 
+from dataclasses import replace
+
 from ..models import FetchHints, Job, Precision
-from ..normalize import detect_remote, parse_timestamp
+from ..normalize import detect_remote, html_to_text, parse_timestamp
 from .base import Provider, ProviderError, register
 
 _PATH = "/hcmRestApi/resources/latest/recruitingCEJobRequisitions"
+_DETAIL_PATH = "/hcmRestApi/resources/latest/recruitingCEJobRequisitionDetails"
+#: Description-bearing fields of a requisition detail, in reading order.
+_DETAIL_FIELDS = (
+    "ExternalDescriptionStr",
+    "ExternalResponsibilitiesStr",
+    "ExternalQualificationsStr",
+    "CorporateDescriptionStr",
+)
 _PAGE_SIZE = 25
 _MAX_PAGES = 20
 
@@ -48,6 +58,8 @@ class OracleHcmProvider(Provider):
         base = config.get("base_url", f"https://{host}").rstrip("/")
         company = config.get("company_name", host)
         job_base = f"https://{host}/hcmUI/CandidateExperience/en/sites/{site}/job"
+        # Exactly the form verified live: ById;Id="<id>",siteNumber=<site>.
+        detail_url = f"{base}{_DETAIL_PATH}?expand=all&onlyData=true&finder=ById;Id=%22{{id}}%22,siteNumber={site}"
 
         jobs: list[Job] = []
         offset = 0
@@ -62,7 +74,7 @@ class OracleHcmProvider(Provider):
             )
             result = self._unwrap(payload, host)
             batch = result.get("requisitionList") or []
-            page = [self._to_job(r, company=company, job_base=job_base) for r in batch]
+            page = [self._to_job(r, company=company, job_base=job_base, detail_url=detail_url) for r in batch]
             jobs.extend(page)
             offset += len(batch)
 
@@ -87,7 +99,7 @@ class OracleHcmProvider(Provider):
         return items[0]
 
     @staticmethod
-    def _to_job(entry: dict, *, company: str, job_base: str) -> Job:
+    def _to_job(entry: dict, *, company: str, job_base: str, detail_url: str) -> Job:
         job_id = str(entry.get("Id") or "")
         locations = [entry.get("PrimaryLocation")]
         for extra in entry.get("secondaryLocations") or []:
@@ -107,6 +119,18 @@ class OracleHcmProvider(Provider):
             locations=tuple(dict.fromkeys(locations)),
             remote=detect_remote(workplace, " ".join(locations)),
             department=entry.get("JobFamily") or entry.get("Organization"),
-            description=entry.get("ShortDescriptionStr") or "",
+            description="",  # the list's ShortDescriptionStr is a teaser; details fill it in
+            detail_url=detail_url.replace("{id}", job_id) if job_id else "",
             raw=entry,
         )
+
+    def fetch_details(self, job: Job) -> Job:
+        """recruitingCEJobRequisitionDetails ``ById`` -> the external description fields."""
+        if not job.detail_url:
+            return job
+        payload = self._get_json(job.detail_url)
+        items = payload.get("items") if isinstance(payload, dict) else None
+        if not items or not isinstance(items[0], dict):
+            raise ProviderError(f"oracle_hcm: {job.detail_url} returned no requisition")
+        parts = [html_to_text(items[0].get(f)) for f in _DETAIL_FIELDS]
+        return replace(job, description="\n".join(p for p in parts if p))

@@ -19,8 +19,10 @@ the one used; a re-post can look new, which the daily run's seen-file absorbs
 
 from __future__ import annotations
 
+from dataclasses import replace
+
 from ..models import FetchHints, Job, Precision
-from ..normalize import detect_remote, parse_timestamp
+from ..normalize import detect_remote, html_to_text, parse_timestamp
 from .base import Provider, ProviderError, register
 
 _PATH = "/api/pcsx/search"
@@ -30,6 +32,9 @@ _MAX_PAGES = 40
 
 @register("eightfold")
 class EightfoldProvider(Provider):
+    #: Eightfold answered the first detail request of a burst with HTTP 429.
+    detail_concurrency = 2
+
     def fetch(self, config: dict, hints: FetchHints) -> list[Job]:
         host = config.get("host")
         domain = config.get("domain")
@@ -52,7 +57,7 @@ class EightfoldProvider(Provider):
             batch = data.get("positions") or []
             if not batch:
                 break
-            page = [self._to_job(p, company=company, base=base) for p in batch]
+            page = [self._to_job(p, company=company, base=base, domain=domain) for p in batch]
             jobs.extend(page)
             params["start"] = int(params["start"]) + len(batch)
 
@@ -81,7 +86,7 @@ class EightfoldProvider(Provider):
         return data
 
     @staticmethod
-    def _to_job(entry: dict, *, company: str, base: str) -> Job:
+    def _to_job(entry: dict, *, company: str, base: str, domain: str) -> Job:
         job_id = str(entry.get("id") or "")
         path = entry.get("positionUrl") or (f"/careers/job/{job_id}" if job_id else "")
         url = f"{base}{path}" if path.startswith("/") else path
@@ -105,5 +110,16 @@ class EightfoldProvider(Provider):
             locations=tuple(str(loc) for loc in locations if loc),
             remote=remote,
             department=entry.get("department"),
+            detail_url=f"{base}/api/pcsx/position_details?position_id={job_id}&domain={domain}&hl=en" if job_id else "",
             raw=entry,
         )
+
+    def fetch_details(self, job: Job) -> Job:
+        """``/api/pcsx/position_details`` -> ``data.jobDescription``."""
+        if not job.detail_url:
+            return job
+        payload = self._get_json(job.detail_url)
+        data = payload.get("data") if isinstance(payload, dict) else None
+        if not isinstance(data, dict):
+            raise ProviderError(f"eightfold: {job.detail_url} has no data")
+        return replace(job, description=html_to_text(data.get("jobDescription")))

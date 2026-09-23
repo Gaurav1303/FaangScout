@@ -8,7 +8,7 @@ auth required for a public board. Ashby exposes ``publishedAt`` (exact).
 from __future__ import annotations
 
 from ..models import FetchHints, Job, Precision
-from ..normalize import detect_remote, parse_timestamp, strip_html
+from ..normalize import detect_remote, html_to_text, parse_timestamp
 from .base import Provider, ProviderError, register
 
 _DEFAULT_BASE = "https://api.ashbyhq.com"
@@ -34,7 +34,7 @@ class AshbyProvider(Provider):
     @staticmethod
     def _to_job(entry: dict, *, company: str) -> Job:
         location = (entry.get("location") or "").strip()
-        description = strip_html(entry.get("descriptionPlain") or entry.get("description", ""))
+        description = entry.get("descriptionPlain") or html_to_text(entry.get("description", ""))
         is_remote = entry.get("isRemote")
 
         return Job(

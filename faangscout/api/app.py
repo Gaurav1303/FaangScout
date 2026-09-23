@@ -31,6 +31,8 @@ class SearchRequest(BaseModel):
     include_undated: bool = False
     semantic: bool = Field(False, description="Use Claude for role matching instead of keywords")
     probe: bool = Field(False, description="Try guessing boards for companies not in the registry")
+    location: str | None = Field(None, description="Only jobs in this country, e.g. 'India'")
+    experience: float | None = Field(None, ge=0, description="Only jobs this many years of experience qualifies for")
     limit: int | None = None
 
 
@@ -43,6 +45,7 @@ class JobOut(BaseModel):
     precision: str
     locations: list[str]
     remote: bool | None
+    experience: str | None = None
 
 
 class SourceOut(BaseModel):
@@ -68,6 +71,8 @@ def search(request: SearchRequest) -> SearchResponse:
         include_undated=request.include_undated,
         limit=request.limit,
         semantic=True if request.semantic else None,
+        location=request.location,
+        experience=request.experience,
     )
     report = scout(criteria, registry=load_registry(), probe_unknown=request.probe)
 
@@ -82,6 +87,7 @@ def search(request: SearchRequest) -> SearchResponse:
                 precision=sj.job.precision.value,
                 locations=list(sj.job.locations),
                 remote=sj.job.remote,
+                experience=sj.job.experience.label() if sj.job.experience else None,
             )
             for sj in report.jobs
         ],

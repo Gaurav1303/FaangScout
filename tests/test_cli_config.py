@@ -56,3 +56,14 @@ def test_non_mapping_config_is_an_error(tmp_path, capsys):
     with pytest.raises(SystemExit):
         main(["--config", str(cfg)])
     assert "must contain a YAML mapping" in capsys.readouterr().err
+
+
+def test_config_location_and_experience(tmp_path):
+    args = parse(tmp_path, "companies: [Stripe]\nlocation: India\nexperience: 3\n")
+    assert args.location == "India"
+    assert args.experience == 3.0
+
+
+def test_config_experience_dict_form(tmp_path):
+    args = parse(tmp_path, "companies: [Stripe]\nexperience: {years: 4}\n")
+    assert args.experience == 4.0

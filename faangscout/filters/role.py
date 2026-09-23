@@ -19,6 +19,8 @@ from .base import Filter, register
 
 @register("role")
 class RoleKeywordFilter(Filter):
+    order = 20
+
     def enabled(self, criteria: SearchCriteria) -> bool:
         # When semantic matching is requested, SemanticRoleFilter owns role
         # matching outright instead of refining what this filter already

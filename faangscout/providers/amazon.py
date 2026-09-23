@@ -20,7 +20,7 @@ postings are :attr:`Precision.DATE_ONLY`.
 from __future__ import annotations
 
 from ..models import FetchHints, Job, Precision
-from ..normalize import detect_remote, parse_timestamp, strip_html
+from ..normalize import detect_remote, html_to_text, parse_timestamp
 from .base import Provider, ProviderError, register
 
 _DEFAULT_BASE = "https://www.amazon.jobs"
@@ -74,7 +74,16 @@ class AmazonProvider(Provider):
     def _to_job(entry: dict, *, company: str, base: str) -> Job:
         path = entry.get("job_path", "")
         location = entry.get("normalized_location") or entry.get("location") or ""
-        description = strip_html(entry.get("description", ""))
+        # Requirements live in separate list fields. Keep them as headed
+        # sections so the experience filter can tell basic from preferred.
+        sections = [
+            ("Basic qualifications", entry.get("basic_qualifications")),
+            ("Description", entry.get("description")),
+            ("Preferred qualifications", entry.get("preferred_qualifications")),
+        ]
+        description = "\n".join(
+            f"{heading}:\n{html_to_text(body)}" for heading, body in sections if body
+        )
 
         return Job(
             company=company,

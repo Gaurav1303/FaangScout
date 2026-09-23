@@ -87,6 +87,7 @@ class SemanticConfig:
 
 @register("semantic")
 class SemanticRoleFilter(Filter):
+    order = 25
     """Role filter keyed on ``semantic`` in ``criteria.filters``.
 
     Injectable client for testing: pass an object exposing

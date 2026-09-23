@@ -84,6 +84,44 @@ window, a couple of checkboxes) that calls `POST /api/search` and lists
 results. It's intentionally minimal; the interesting logic is all in
 `scout()`, not the UI.
 
+## Location and experience filters
+
+```bash
+faangscout --config scout.yaml --location India --experience 3
+```
+
+(or `location: India` / `experience: 3` in `scout.yaml`)
+
+**`--location`** keeps jobs in a country. Boards write locations every which
+way ("Pune, India", "Hyderabad, TS, IN", "Bengaluru, Karnataka, IND", or just
+"Noida"), so it matches the country name, its ISO codes, and its major cities
+and states. An ISO code only counts as the *last* part of a location -
+"Indianapolis, IN, US" is Indiana, not India. A job with several locations
+passes if any one is in the country.
+
+**`--experience N`** keeps jobs someone with N years qualifies for: the
+posting's required range must contain N. For 3: "2+ yrs" and "3-5 yrs" pass;
+"5+ yrs", "Senior"/"Lead", and fresher "0-2 yrs" roles don't. The requirement
+is read from the description:
+
+- the strictest minimum among the requirements wins ("5+ years of
+  development, 3+ with Kafka" needs 5) - unless the title is open at two
+  levels ("Software Engineer 2 / Senior"), where the lower one counts;
+- "Preferred" / "Nice to have" sections and lines saying "preferred" or
+  "a plus" are ignored;
+- "OR Master's degree AND ..." alternatives are skipped, so a **bachelor's
+  degree is assumed**.
+
+When the description states nothing, the title's level gives a rough range
+("Engineer II" ~2-6 yrs, "Senior"/"Lead" 5+, "Staff" 8+), labelled "(title)".
+When neither does, the job is **kept** and marked "not stated" - dropping it
+would hide real matches. The report's Experience column shows which applies.
+
+Descriptions come free with Greenhouse, Lever, Ashby and Amazon listings.
+Workday, Eightfold and Oracle need one extra request per job, so those are
+fetched only for jobs that already passed the time, role and location
+filters - a few dozen requests, not thousands.
+
 ## Run it on GitHub Actions (daily email)
 
 If your own network can reach the career portals, the CLI is all you need.
@@ -319,7 +357,7 @@ pip install -r requirements-dev.txt
 pytest
 ```
 
-All 140 tests run against mocked HTTP responses (`httpx.MockTransport`) - no
+All 199 tests run against mocked HTTP responses (`httpx.MockTransport`) - no
 network access needed, and none of the numbers in these tests came from a
 live board.
 

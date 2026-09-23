@@ -9,6 +9,7 @@ filters stay boring.
 
 from __future__ import annotations
 
+import html
 import re
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
@@ -251,20 +252,30 @@ def detect_remote(*texts: str) -> bool | None:
 
 
 def strip_html(value: str | None) -> str:
-    """Crude tag strip. Descriptions are only used for keyword matching."""
+    """Tags removed, entities decoded, whitespace collapsed to one line."""
+    return _WHITESPACE.sub(" ", html_to_text(value)).strip()
+
+
+_BLOCK_TAG = re.compile(r"<\s*(?:br|/p|/div|/li|li|/h[1-6]|h[1-6]|/ul|/ol|/tr)\b[^>]*>", re.I)
+_TAG = re.compile(r"<[^>]+>")
+_INLINE_SPACE = re.compile(r"[ \t\f\v\u00a0]+")
+
+
+def html_to_text(value: str | None) -> str:
+    """HTML to plain text that keeps line structure (block tags become newlines).
+
+    Decodes entities before *and* after stripping tags: Greenhouse sends
+    descriptions HTML-escaped ("&lt;p&gt;"), which a strip-then-decode order
+    would turn into literal "<p>" text.
+    """
     if not value:
         return ""
-    text = re.sub(r"<(script|style)[^>]*>.*?</\1>", " ", value, flags=re.S | re.I)
-    text = re.sub(r"<[^>]+>", " ", text)
-    text = (
-        text.replace("&nbsp;", " ")
-        .replace("&amp;", "&")
-        .replace("&lt;", "<")
-        .replace("&gt;", ">")
-        .replace("&#39;", "'")
-        .replace("&quot;", '"')
-    )
-    return _WHITESPACE.sub(" ", text).strip()
+    text = html.unescape(value)
+    text = re.sub(r"<(script|style)[^>]*>.*?</\1>", " ", text, flags=re.S | re.I)
+    text = _BLOCK_TAG.sub("\n", text)
+    text = html.unescape(_TAG.sub(" ", text))
+    lines = (_INLINE_SPACE.sub(" ", line).strip() for line in text.splitlines())
+    return "\n".join(line for line in lines if line)
 
 
 # --------------------------------------------------------------------------- #

@@ -17,10 +17,11 @@ Days Ago") - a day, not a time - so results are ``Precision.DATE_ONLY``.
 
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import datetime, timedelta
 
 from ..models import FetchHints, Job, Precision
-from ..normalize import detect_remote, parse_relative
+from ..normalize import detect_remote, html_to_text, parse_relative
 from .base import Provider, ProviderError, register
 
 _PAGE_SIZE = 20
@@ -66,12 +67,12 @@ class WorkdayProvider(Provider):
         merged: dict[str, Job] = {}
         for search_text, stop_at_window in passes:
             for job in self._collect(url, search_text, hints, stop_at_window=stop_at_window,
-                                     company=company, host=host, site=site):
+                                     company=company, host=host, tenant=tenant, site=site):
                 merged.setdefault(job.external_id or job.url, job)
         return list(merged.values())
 
     def _collect(self, url: str, search_text: str, hints: FetchHints, *, stop_at_window: bool,
-                 company: str, host: str, site: str) -> list[Job]:
+                 company: str, host: str, tenant: str, site: str) -> list[Job]:
         jobs: list[Job] = []
         offset = 0
         stale_pages = 0
@@ -83,7 +84,7 @@ class WorkdayProvider(Provider):
 
             postings = payload.get("jobPostings", [])
             total = payload.get("total", offset + len(postings))
-            page = [self._to_job(entry, company=company, host=host, site=site) for entry in postings]
+            page = [self._to_job(entry, company=company, host=host, tenant=tenant, site=site) for entry in postings]
             jobs.extend(page)
             offset += len(postings)
             if not postings or offset >= total or offset >= hints.max_results:
@@ -99,7 +100,7 @@ class WorkdayProvider(Provider):
         return jobs
 
     @staticmethod
-    def _to_job(entry: dict, *, company: str, host: str, site: str) -> Job:
+    def _to_job(entry: dict, *, company: str, host: str, tenant: str, site: str) -> Job:
         # externalPath is site-relative ("/job/Pune-India/..."); the public
         # page lives under the site ("/CorporateCareers/job/Pune-India/...").
         path = entry.get("externalPath", "")
@@ -122,5 +123,16 @@ class WorkdayProvider(Provider):
             precision=Precision.DATE_ONLY,
             locations=locations,
             remote=detect_remote(str(location)),
+            detail_url=f"https://{host}/wday/cxs/{tenant}/{site.strip('/')}{path}" if path else "",
             raw=entry,
         )
+
+    def fetch_details(self, job: Job) -> Job:
+        """``GET .../wday/cxs/{tenant}/{site}{externalPath}`` -> ``jobPostingInfo.jobDescription``."""
+        if not job.detail_url:
+            return job
+        payload = self._get_json(job.detail_url)
+        info = payload.get("jobPostingInfo") if isinstance(payload, dict) else None
+        if not isinstance(info, dict):
+            raise ProviderError(f"workday: {job.detail_url} has no jobPostingInfo")
+        return replace(job, description=html_to_text(info.get("jobDescription")))

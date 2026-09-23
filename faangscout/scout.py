@@ -7,6 +7,7 @@ providers, models, filters); everything else stays decoupled from the others.
 from __future__ import annotations
 
 import logging
+import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import UTC, datetime
@@ -25,7 +26,7 @@ from .models import (
     SearchCriteria,
     SourceReport,
 )
-from .providers.base import ProviderError, get_provider
+from .providers.base import Provider, ProviderError, get_provider
 
 logger = logging.getLogger(__name__)
 
@@ -124,11 +125,64 @@ def _dedupe(jobs: list[Job]) -> list[Job]:
     return list(seen.values())
 
 
+def make_enricher(client: httpx.Client, failures: list[str], *, max_workers: int = DEFAULT_MAX_WORKERS):
+    """Build the pipeline's enricher: fetch full descriptions via each provider.
+
+    Only jobs with no description and a ``detail_url`` are fetched, each
+    provider limited to its ``detail_concurrency`` so a rate-limiting board
+    (Eightfold) isn't hammered. A failed fetch keeps the job as-is - its
+    experience then reads "not stated" - and is counted in ``failures``.
+    """
+    providers: dict[str, Provider] = {}
+    gates: dict[str, threading.Semaphore] = {}
+
+    def detail(job: Job) -> Job:
+        with gates[job.source]:
+            try:
+                return providers[job.source].fetch_details(job)
+            except Exception as exc:  # noqa: BLE001 - keep the job, note the failure
+                failures.append(f"{job.company} {job.title!r}: {exc}")
+                return job
+
+    def enrich(jobs: list[Job]) -> list[Job]:
+        need = [i for i, j in enumerate(jobs) if not j.description and j.detail_url]
+        if not need:
+            return jobs
+        # Create each provider and its concurrency gate up front, off the workers.
+        for source in {jobs[i].source for i in need} - providers.keys():
+            providers[source] = get_provider(source, client=client)
+            gates[source] = threading.Semaphore(providers[source].detail_concurrency)
+        out = list(jobs)
+        with ThreadPoolExecutor(max_workers=max_workers) as pool:
+            for i, job in zip(need, pool.map(detail, [jobs[i] for i in need])):
+                out[i] = job
+        return out
+
+    return enrich
+
+
 def _finish(
     report: ScoutReport, jobs: list[Job], pipeline: FilterPipeline, criteria: SearchCriteria
 ) -> ScoutReport:
     deduped = _dedupe(jobs)
-    kept, rejections, warnings = pipeline.run(deduped, criteria)
+    failures: list[str] = []
+    with httpx.Client(
+        timeout=15.0, follow_redirects=True, headers={"User-Agent": "FaangScout/0.1"}
+    ) as detail_client:
+        # Bound to this run's client, so it's attached only for this run.
+        own_enricher = pipeline.enricher is None
+        if own_enricher:
+            pipeline.enricher = make_enricher(detail_client, failures)
+        try:
+            kept, rejections, warnings = pipeline.run(deduped, criteria)
+        finally:
+            if own_enricher:
+                pipeline.enricher = None
+    if failures:
+        warnings.append(
+            f"couldn't fetch the full posting for {len(failures)} job(s); their experience "
+            f"reads 'not stated' (first: {failures[0]})"
+        )
 
     # Most recent first; undated jobs (only present when include_undated=True) sort last.
     _EPOCH = datetime.min.replace(tzinfo=UTC)

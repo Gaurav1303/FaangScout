@@ -20,6 +20,8 @@ _DATE_ONLY_GRACE = timedelta(hours=24)
 
 @register("posted_within")
 class TimeWindowFilter(Filter):
+    order = 10
+
     def enabled(self, criteria: SearchCriteria) -> bool:
         # Always on: an unset window still defaults to "last 24h" per
         # SearchCriteria.build, so absence of the key doesn't mean "no limit".

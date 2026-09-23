@@ -31,6 +31,36 @@ class Precision(str, Enum):
 
 
 @dataclass(frozen=True, slots=True)
+class ExperienceReq:
+    """Years of experience a posting asks for, and how we know.
+
+    ``basis`` is "description" (read from the posting text), "title" (implied
+    by a level like "Senior" or "Engineer II"), or "unknown". ``max_years`` is
+    None for open-ended requirements ("3+ years").
+    """
+
+    min_years: float | None = None
+    max_years: float | None = None
+    basis: str = "unknown"
+    evidence: str = ""
+
+    def admits(self, years: float) -> bool | None:
+        """Whether someone with ``years`` of experience fits. None if unknown."""
+        if self.min_years is None:
+            return None
+        if years < self.min_years:
+            return False
+        return self.max_years is None or years <= self.max_years
+
+    def label(self) -> str:
+        if self.min_years is None:
+            return "not stated"
+        lo = f"{self.min_years:g}"
+        text = f"{lo}–{self.max_years:g} yrs" if self.max_years is not None else f"{lo}+ yrs"
+        return text if self.basis == "description" else f"~{text} (title)"
+
+
+@dataclass(frozen=True, slots=True)
 class Job:
     """A single job posting, normalised across every source."""
 
@@ -46,6 +76,11 @@ class Job:
     department: str | None = None
     employment_type: str | None = None
     description: str = ""
+    #: Where the provider can fetch the full posting when the listing didn't
+    #: include a description (see ``Provider.fetch_details``).
+    detail_url: str = ""
+    #: Filled in by the experience filter.
+    experience: ExperienceReq | None = None
     # Untouched provider payload, kept for debugging and for filters that want
     # to reach for a field we have not normalised yet.
     raw: dict[str, Any] = field(default_factory=dict, compare=False, repr=False)

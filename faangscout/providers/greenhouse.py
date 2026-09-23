@@ -13,7 +13,7 @@ send it, ``first_published``. The latter is preferred (``Precision.EXACT``);
 from __future__ import annotations
 
 from ..models import FetchHints, Job, Precision
-from ..normalize import detect_remote, strip_html
+from ..normalize import detect_remote, html_to_text
 from .base import Provider, ProviderError, register
 
 _DEFAULT_BASE = "https://boards-api.greenhouse.io"
@@ -43,7 +43,7 @@ class GreenhouseProvider(Provider):
         from ..normalize import parse_timestamp
 
         title = entry.get("title", "")
-        description = strip_html(entry.get("content", ""))
+        description = html_to_text(entry.get("content", ""))
         location = ((entry.get("location") or {}).get("name") or "").strip()
         locations = tuple(loc for loc in [location] if loc)
         departments = entry.get("departments") or []

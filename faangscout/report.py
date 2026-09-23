@@ -40,6 +40,8 @@ def render_markdown(
     new_only: bool = False,
     max_rows: int | None = None,
     more_link: str | None = None,
+    location: str | None = None,
+    experience: float | None = None,
 ) -> str:
     """Render ``report`` as Markdown.
 
@@ -53,6 +55,10 @@ def render_markdown(
     scope = []
     if role:
         scope.append(f"role: **{_cell(role)}**")
+    if location:
+        scope.append(f"in **{_cell(location)}**")
+    if experience is not None:
+        scope.append(f"fits **{experience:g} yrs** experience")
     if hours:
         scope.append(f"posted in the last **{hours:g}h**")
     lines = [heading]
@@ -61,12 +67,17 @@ def render_markdown(
 
     lines.append("")
     if jobs:
-        lines += ["| Company | Role | Location | Posted | Link |", "|---|---|---|---|---|"]
+        with_exp = any(job.experience is not None for job in jobs)
+        header = "| Company | Role | Location | Posted |" + (" Experience |" if with_exp else "") + " Link |"
+        lines += [header, "|" + "---|" * (header.count("|") - 1)]
         shown = jobs if max_rows is None else jobs[:max_rows]
         for job in shown:
+            exp = ""
+            if with_exp:
+                exp = f" {_cell(job.experience.label()) if job.experience else '—'} |"
             lines.append(
                 f"| {_cell(job.company)} | {_cell(job.title)} | {_cell(job.location_text) or '—'} "
-                f"| {format_age(job)} | [open]({job.url}) |"
+                f"| {format_age(job)} |{exp} [open]({job.url}) |"
             )
         hidden = len(jobs) - len(shown)
         if hidden:

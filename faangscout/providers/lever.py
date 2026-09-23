@@ -8,7 +8,7 @@ true ``createdAt`` epoch-millisecond timestamp, so this is ``Precision.EXACT``.
 from __future__ import annotations
 
 from ..models import FetchHints, Job, Precision
-from ..normalize import detect_remote, parse_timestamp, strip_html
+from ..normalize import detect_remote, html_to_text, parse_timestamp
 from .base import Provider, ProviderError, register
 
 _DEFAULT_BASE = "https://api.lever.co"
@@ -35,7 +35,13 @@ class LeverProvider(Provider):
         categories = entry.get("categories") or {}
         location = (categories.get("location") or "").strip()
         commitment = categories.get("commitment")
-        description = strip_html(entry.get("descriptionPlain") or entry.get("description", ""))
+        # Lever keeps requirements in "lists" ({text: heading, content: <li>...}).
+        parts = [entry.get("descriptionPlain") or html_to_text(entry.get("description", ""))]
+        for block in entry.get("lists") or []:
+            if isinstance(block, dict):
+                parts.append(f"{block.get('text', '')}:\n{html_to_text(block.get('content', ''))}")
+        parts.append(entry.get("additionalPlain") or "")
+        description = "\n".join(p for p in parts if p)
 
         return Job(
             company=company,

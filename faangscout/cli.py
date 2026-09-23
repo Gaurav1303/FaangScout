@@ -42,6 +42,17 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--limit", type=int, default=None, help="Cap the number of results returned")
     parser.add_argument(
+        "--location",
+        help="Only jobs in this country, e.g. 'India' (matches country names, ISO codes, and major cities)",
+    )
+    parser.add_argument(
+        "--experience",
+        type=float,
+        metavar="YEARS",
+        help="Only jobs a candidate with this many years of experience qualifies for, e.g. 3 "
+        "('2+ years' and '3-5 years' pass; '5+ years' doesn't). Postings stating no requirement are kept.",
+    )
+    parser.add_argument(
         "--include-undated",
         action="store_true",
         help="Include jobs whose posting date could not be determined instead of dropping them",
@@ -126,6 +137,8 @@ def main(argv: list[str] | None = None) -> int:
         include_undated=args.include_undated,
         limit=args.limit,
         semantic=True if args.semantic else None,
+        location=args.location,
+        experience=args.experience,
     )
     registry = load_registry(args.companies_file)
     report = scout(criteria, registry=registry, probe_unknown=args.probe)
@@ -146,11 +159,13 @@ def main(argv: list[str] | None = None) -> int:
     if args.comment_out:
         Path(args.comment_out).write_text(
             render_markdown(report, role=args.role, hours=args.hours, new_only=new_only,
+                            location=args.location, experience=args.experience,
                             max_rows=args.max_rows, more_link=args.more_link)
         )
 
     if args.markdown:
-        print(render_markdown(report, role=args.role, hours=args.hours, new_only=new_only), end="")
+        print(render_markdown(report, role=args.role, hours=args.hours, new_only=new_only,
+                              location=args.location, experience=args.experience), end="")
     elif args.json:
         print(json.dumps(_report_to_dict(report, explain=args.explain), indent=2, default=str))
     else:
@@ -181,6 +196,11 @@ def apply_config(args: argparse.Namespace) -> None:
         args.hours = float(config.get("hours", DEFAULT_HOURS))
     if args.limit is None and config.get("limit") is not None:
         args.limit = int(config["limit"])
+    if args.location is None and config.get("location"):
+        args.location = str(config["location"])
+    if args.experience is None and config.get("experience") is not None:
+        exp = config["experience"]
+        args.experience = float(exp["years"] if isinstance(exp, dict) else exp)
     for flag in ("include_undated", "semantic"):
         if config.get(flag):
             setattr(args, flag, True)
@@ -306,6 +326,17 @@ def _report_to_dict(report, *, explain: bool) -> dict:
                 "precision": sj.job.precision.value,
                 "locations": list(sj.job.locations),
                 "remote": sj.job.remote,
+                "experience": (
+                    {
+                        "label": sj.job.experience.label(),
+                        "min_years": sj.job.experience.min_years,
+                        "max_years": sj.job.experience.max_years,
+                        "basis": sj.job.experience.basis,
+                        "evidence": sj.job.experience.evidence,
+                    }
+                    if sj.job.experience
+                    else None
+                ),
             }
             for sj in report.jobs
         ],
@@ -331,7 +362,8 @@ def _print_text_report(report, *, explain: bool) -> None:
         job = sj.job
         age = f" ({format_age(job)})" if job.posted_at else ""
         loc = f" [{job.location_text}]" if job.location_text else ""
-        print(f"- {job.company}: {job.title}{loc}{age}\n  {job.url}")
+        exp = f" <{job.experience.label()}>" if job.experience else ""
+        print(f"- {job.company}: {job.title}{loc}{age}{exp}\n  {job.url}")
 
     print(f"\n{len(report.jobs)} job(s) across {len(report.sources)} board(s).")
 

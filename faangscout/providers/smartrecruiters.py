@@ -7,7 +7,7 @@ via ``offset``/``limit``. Exposes ``releasedDate`` (exact).
 from __future__ import annotations
 
 from ..models import FetchHints, Job, Precision
-from ..normalize import detect_remote, parse_timestamp, strip_html
+from ..normalize import detect_remote, html_to_text, parse_timestamp
 from .base import Provider, ProviderError, register
 
 _DEFAULT_BASE = "https://api.smartrecruiters.com"
@@ -60,6 +60,6 @@ class SmartRecruitersProvider(Provider):
             locations=tuple(loc for loc in [location] if loc),
             remote=bool(is_remote) if is_remote is not None else detect_remote(location),
             department=(entry.get("department") or {}).get("label"),
-            description=strip_html(entry.get("jobAd", {}).get("sections", {}).get("jobDescription", {}).get("text", "")),
+            description=html_to_text(entry.get("jobAd", {}).get("sections", {}).get("jobDescription", {}).get("text", "")),
             raw=entry,
         )

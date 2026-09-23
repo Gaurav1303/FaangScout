@@ -11,12 +11,23 @@ codebase needs to change to add one.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 
 from ..models import Job, Rejection, SearchCriteria
+
+#: Fills in ``Job.description`` for jobs whose listing didn't include one.
+Enricher = Callable[[list[Job]], list[Job]]
 
 
 class Filter(ABC):
     name: str = "base"
+    #: Position in the pipeline, lowest first. Cheap, selective filters go
+    #: early so expensive ones (see ``needs_description``) see fewer jobs.
+    order: int = 50
+    #: Set when the filter reads ``Job.description``. The pipeline then asks
+    #: its enricher to fetch descriptions for the jobs still in play - and only
+    #: those - right before this filter runs.
+    needs_description: bool = False
 
     @abstractmethod
     def apply(
@@ -53,18 +64,24 @@ def register(name: str):
 
 
 class FilterPipeline:
-    """Runs every registered, enabled filter over a job list in sequence."""
+    """Runs every registered, enabled filter over a job list, in ``order``."""
 
-    def __init__(self, filters: list[Filter] | None = None) -> None:
-        self.filters = filters if filters is not None else [cls() for cls in REGISTRY.values()]
+    def __init__(self, filters: list[Filter] | None = None, *, enricher: Enricher | None = None) -> None:
+        filters = filters if filters is not None else [cls() for cls in REGISTRY.values()]
+        self.filters = sorted(filters, key=lambda f: f.order)
+        self.enricher = enricher
 
     def run(self, jobs: list[Job], criteria: SearchCriteria) -> tuple[list[Job], list[Rejection], list[str]]:
         kept = list(jobs)
         rejections: list[Rejection] = []
         warnings: list[str] = []
+        enriched = False
         for filt in self.filters:
             if not filt.enabled(criteria):
                 continue
+            if filt.needs_description and not enriched and self.enricher is not None and kept:
+                kept = self.enricher(kept)
+                enriched = True
             result = filt.apply(kept, criteria)
             kept, rejected, *rest = result
             rejections.extend(rejected)

@@ -3,6 +3,10 @@
 
 role: software engineer   # broad: frontend, backend, ML, infra, SDE, ... all match
 hours: 24                 # only postings from the last N hours
+location: India           # only jobs located in India
+experience: 3             # only jobs someone with 3 years' experience qualifies for
+                          # ("2+ yrs", "3-5 yrs" pass; "5+ yrs", "Senior" don't;
+                          # postings that state nothing are kept, marked "not stated")
 
 companies:
   - Stripe
