@@ -127,7 +127,7 @@ class TestCompanySummary:
         assert "Acme" not in lines  # has a row
         assert lines["Stripe"] == "no new postings in the last 24h"
         assert lines["Rippling"].startswith("no new postings in the last 24h (this board shows no dates")
-        assert lines["Coinbase"] == "1 new posting, none software roles"
+        assert lines["Coinbase"] == "1 new posting, none are software roles"
         assert lines["Rubrik"] == "2 new software roles, none in India"
         assert lines["Adobe"] == "1 new India software role, doesn't fit 3 yrs (needs 5+ yrs)"
         assert lines["PhonePe"] == "1 matching role, already sent in an earlier email"

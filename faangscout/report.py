@@ -86,7 +86,7 @@ def company_summary(
             if undated:
                 why += " (this board shows no dates; postings count as new the day they first appear)"
         elif reached("location") == 0:
-            why = f"{_plural(reached('role'), 'new posting')}, none software roles"
+            why = f"{_plural(reached('role'), 'new posting')}, none are software roles"
         elif reached("experience") == 0:
             why = f"{_plural(reached('location'), 'new software role')}, none in {location or 'the location asked for'}"
         elif reached("already_sent") == 0:
