@@ -14,6 +14,8 @@ Two kinds of target:
                in the page source instead.
   link         does a job URL we generate open a real page: status, final
                URL after redirects, and the page title
+  text         a JSON field holding HTML (``field: data.jobDescription``),
+               rendered to text lines the way the experience filter sees them
   shape        a JSON response's structure: keys, types, list lengths -
                for finding pagination and total-count fields
 """
@@ -136,6 +138,23 @@ def probe_link(client: httpx.Client, target: dict) -> None:
     print(f"  title={title!r}")
 
 
+def probe_text(client: httpx.Client, target: dict) -> None:
+    from faangscout.normalize import html_to_text
+
+    try:
+        r = client.get(target["url"])
+        value = r.json()
+    except (httpx.HTTPError, ValueError) as exc:
+        print(f"  ERROR {exc!r}")
+        return
+    for part in target["field"].split("."):
+        value = value[int(part)] if isinstance(value, list) else (value or {}).get(part)
+    lines = html_to_text(value if isinstance(value, str) else "").splitlines()
+    print(f"  {r.status_code}; {len(lines)} lines")
+    for i, line in enumerate(lines[: int(target.get("max_lines", 120))]):
+        print(f"  {i:3} | {line[:220]!r}")
+
+
 def probe_shape(client: httpx.Client, target: dict) -> None:
     method = target.get("method", "GET").upper()
     try:
@@ -153,7 +172,7 @@ def main(path: str) -> int:
         for target in targets:
             kind = target.get("kind", "raw")
             print(f"=== [{kind}] {target.get('name', '')} {target['url']}")
-            {"fingerprint": probe_fingerprint, "shape": probe_shape, "link": probe_link}.get(kind, probe_raw)(client, target)
+            {"fingerprint": probe_fingerprint, "shape": probe_shape, "link": probe_link, "text": probe_text}.get(kind, probe_raw)(client, target)
     return 0
 
 
