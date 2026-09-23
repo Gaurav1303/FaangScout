@@ -5,6 +5,14 @@ Search results are server-rendered: each row has a link
 ("23 Sept 2026") and a location span - seen 2026-09-23. With
 ``sort=newest`` paging (``page=N``) stops once a whole page predates the
 time window.
+
+Apple's worldwide "newest" list is dominated by retail roles posted per
+country, so when the search has a location filter that the board config
+maps to an Apple location code (``location_codes: {india: india-INDC}``),
+the search is narrowed to it server-side.
+
+Posting ids aren't always plain digits (some carry a suffix such as
+``114438210-3337``), so the id is anything up to the next slash; the slug after it is optional.
 """
 
 from __future__ import annotations
@@ -18,7 +26,7 @@ from ..normalize import detect_remote, html_to_text, parse_timestamp
 from .base import Provider, register
 
 _BASE = "https://jobs.apple.com"
-_ROW = re.compile(r'<h3><a [^>]*href="(?P<href>/[^"]+/details/(?P<id>\d+)/[^"?]*)[^"]*"[^>]*>(?P<title>.*?)</a></h3>(?P<rest>.*?)(?=<h3><a |$)', re.S)
+_ROW = re.compile(r'<h3><a [^>]*href="(?P<href>/[^"]+/details/(?P<id>[^/"?]+)(?:/[^"?]*)?)[^"]*"[^>]*>(?P<title>.*?)</a></h3>(?P<rest>.*?)(?=<h3><a |$)', re.S)
 _TEAM = re.compile(r'class="team-name[^"]*">(.*?)</span>', re.S)
 _DATE = re.compile(r'class="job-posted-date"[^>]*>(.*?)</span>', re.S)
 _LOCATION = re.compile(r'class="table--advanced-search__location-sub"[^>]*>(.*?)</span>', re.S)
@@ -33,8 +41,10 @@ class AppleJobsProvider(Provider):
         locale = config.get("locale", "en-us")
         company = config.get("company_name", "Apple")
         params: dict[str, object] = {"search": hints.role_query or "", "sort": "newest"}
-        if config.get("location"):
-            params["location"] = config["location"]
+        codes = {str(k).lower(): v for k, v in (config.get("location_codes") or {}).items()}
+        location = config.get("location") or codes.get((hints.location or "").strip().lower())
+        if location:
+            params["location"] = location
 
         jobs: dict[str, Job] = {}
         for page in range(1, _MAX_PAGES + 1):

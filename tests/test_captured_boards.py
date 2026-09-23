@@ -267,6 +267,27 @@ class TestApple:
         assert job.posted_at == datetime(2026, 9, 23, tzinfo=UTC)
         assert job.precision == Precision.DATE_ONLY
 
+    def test_ids_with_suffix_and_no_slug(self):
+        html = _apple_row("114438210-3337", "Software Engineer", "Software and Services", "22 Sept 2026", "Bengaluru")
+        html += _apple_row("200600001", "iOS Engineer", "Software and Services", "22 Sept 2026", "Hyderabad").replace(
+            "/details/200600001/slug", "/details/200600001")
+        provider = AppleJobsProvider(client=client_with(lambda r: httpx.Response(200, text=html)))
+        jobs = provider.fetch({}, HINTS)
+        assert [j.external_id for j in jobs] == ["114438210-3337", "200600001"]
+        assert jobs[1].url == "https://jobs.apple.com/en-in/details/200600001"
+
+    def test_location_hint_maps_to_apple_code(self):
+        seen = []
+
+        def handler(request):
+            seen.append(request.url.params.get("location"))
+            return httpx.Response(200, text="")
+
+        provider = AppleJobsProvider(client=client_with(handler))
+        provider.fetch({"location_codes": {"India": "india-INDC"}}, FetchHints(location="india"))
+        provider.fetch({"location_codes": {"India": "india-INDC"}}, FetchHints(location="Germany"))
+        assert seen == ["india-INDC", None]
+
     def test_stops_once_a_page_predates_the_window(self):
         since = datetime(2026, 9, 22, tzinfo=UTC)
         old = _apple_row("1", "Software Engineer", "Hardware", "1 Sept 2026", "Bengaluru")

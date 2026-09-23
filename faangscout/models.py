@@ -234,6 +234,9 @@ class FetchHints:
 
     since: datetime | None = None
     role_query: str | None = None
+    #: The location filter's value ("India"), for boards that can filter by
+    #: place server-side (Apple).
+    location: str | None = None
     max_results: int = 400
 
 

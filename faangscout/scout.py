@@ -65,7 +65,11 @@ def scout(
     if not all_sources:
         return _finish(report, [], pipeline, criteria)
 
-    hints = FetchHints(since=criteria.since, role_query=criteria.filters.get("role"))
+    hints = FetchHints(
+        since=criteria.since,
+        role_query=criteria.filters.get("role"),
+        location=criteria.filters.get("location"),
+    )
     fetched_jobs: list[Job] = []
 
     with httpx.Client(

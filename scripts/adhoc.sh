@@ -1,26 +1,16 @@
 #!/usr/bin/env bash
-# Temporary: how Apple's search pages behave (paging, India filter).
+# Temporary: confirm Apple's link shape, then list what's open now at the
+# newly covered companies (India, software engineer, 3 yrs, incl. undated).
 python - <<'PY'
 import re, httpx
-from faangscout.providers.apple import _ROW
 c = httpx.Client(timeout=20, follow_redirects=True, headers={"User-Agent": "Mozilla/5.0 FaangScout"})
-for label, params in [
-    ("world p1", {"search": "software engineer", "sort": "newest", "page": 1}),
-    ("world p2", {"search": "software engineer", "sort": "newest", "page": 2}),
-    ("india p1", {"search": "software engineer", "sort": "newest", "location": "india-INDC", "page": 1}),
-    ("india p2", {"search": "software engineer", "sort": "newest", "location": "india-INDC", "page": 2}),
-    ("india p3", {"search": "software engineer", "sort": "newest", "location": "india-INDC", "page": 3}),
-    ("india relevance p1", {"search": "software engineer", "location": "india-INDC", "page": 1}),
-]:
-    r = c.get("https://jobs.apple.com/en-in/search", params=params)
-    rows = list(_ROW.finditer(r.text))
-    total = re.search(r"of\s*(?:<!-- -->)?\s*([\d,]+)\s*(?:<!-- -->)?\s*results", r.text)
-    nxt = re.search(r'rel="next" href="([^"]+)"', r.text)
-    h3 = r.text.count("<h3><a ")
-    print(f"== {label}: {r.status_code} final={r.url} rows={len(rows)} h3={h3} total={total.group(1) if total else '?'} next={nxt.group(1) if nxt else None}")
-    for m in rows[:25]:
-        rest = m.group("rest")
-        d = re.search(r'job-posted-date"[^>]*>(.*?)</span>', rest)
-        loc = re.search(r'location-sub"[^>]*>(.*?)</span>', rest)
-        print("   ", m.group("id"), "|", m.group("title")[:70], "|", d.group(1) if d else "-", "|", loc.group(1)[:40] if loc else "-")
+r = c.get("https://jobs.apple.com/en-in/search",
+          params={"search": "software engineer", "sort": "newest", "location": "india-INDC", "page": 1})
+for m in re.findall(r'<h3><a [^>]*href="([^"]+)"', r.text)[:6]:
+    print("apple href:", m)
 PY
+set -x
+NEW=(PhonePe Rippling Nutanix Intuit Apple ShareChat Postman Kotak "DP World" JPMorgan)
+faangscout --config scout.yaml --companies "${NEW[@]}" --hours 720 --include-undated \
+  --markdown --max-rows 400
+faangscout --companies Apple --role "software engineer" --location India --hours 720 --include-undated --explain | head -40
