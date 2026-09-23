@@ -9,8 +9,9 @@ Read from the description first, falling back to the level in the title:
   the most lenient minimum, since either level is hiring.
 - Sections headed "Preferred", "Nice to have", "Bonus"... and lines saying
   "preferred"/"a plus" don't count: "5+ years preferred" isn't a requirement.
-- Lines offering a higher-degree route ("OR Master's degree AND 3+ years")
-  are skipped, so a bachelor's degree is assumed - Microsoft writes every
+- A higher-degree route ("... OR Master's Degree AND 1+ year") is cut off
+  where it starts, keeping the bachelor's requirement before it on the same
+  line - so a bachelor's degree is assumed. Microsoft writes every
   requirement this way.
 - Numbers over 15 years are ignored ("serving customers for 25 years").
 
@@ -52,8 +53,13 @@ _REQUIRED_HEADER = re.compile(
     r"responsibilities|what you will do|what you'll do|job responsibilities)\b",
     re.I,
 )
-_INLINE_OPTIONAL = re.compile(r"\b(?:preferred|nice to have|good to have|is a plus|a plus|bonus|ideally)\b", re.I)
-_HIGHER_DEGREE = re.compile(r"\b(?:master'?s|masters|ph\.?\s?d|doctorate|mba)\b", re.I)
+_INLINE_OPTIONAL = re.compile(
+    r"\b(?:preferred|preferably|nice to have|good to have|is a plus|a plus|bonus|ideally)\b", re.I
+)
+#: Where a higher-degree alternative starts: "... OR Master's Degree AND 1+
+#: year ...". Everything from here on is a different path, so only the part
+#: of the line before it counts. (Microsoft uses a curly apostrophe.)
+_ALTERNATIVE_ROUTE = re.compile(r"\bor\s+(?:an?\s+)?(?:master|doctorate|ph\.?\s?d|mba)", re.I)
 _NOT_EXPERIENCE = re.compile(
     r"\b(?:founded|history|anniversary|years old|since \d{4}|for over|we have been|decades?|company)\b",
     re.I,
@@ -108,7 +114,10 @@ def mentions(text: str) -> list[tuple[float, float | None, str]]:
     """Every (min, max, snippet) years-of-experience mention in required lines."""
     found: list[tuple[float, float | None, str]] = []
     for line in requirement_lines(text):
-        if _INLINE_OPTIONAL.search(line) or _HIGHER_DEGREE.search(line) or _NOT_EXPERIENCE.search(line):
+        alternative = _ALTERNATIVE_ROUTE.search(line)
+        if alternative:
+            line = line[: alternative.start()]
+        if not line.strip() or _INLINE_OPTIONAL.search(line) or _NOT_EXPERIENCE.search(line):
             continue
         spans: list[tuple[int, int]] = []
 

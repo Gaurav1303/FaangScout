@@ -109,8 +109,9 @@ is read from the description:
   levels ("Software Engineer 2 / Senior"), where the lower one counts;
 - "Preferred" / "Nice to have" sections and lines saying "preferred" or
   "a plus" are ignored;
-- "OR Master's degree AND ..." alternatives are skipped, so a **bachelor's
-  degree is assumed**.
+- a higher-degree route ("... OR Master's Degree AND 1+ year") is cut off
+  where it starts, keeping the bachelor's requirement before it, so a
+  **bachelor's degree is assumed**.
 
 When the description states nothing, the title's level gives a rough range
 ("Engineer II" ~2-6 yrs, "Senior"/"Lead" 5+, "Staff" 8+), labelled "(title)".
@@ -357,7 +358,7 @@ pip install -r requirements-dev.txt
 pytest
 ```
 
-All 199 tests run against mocked HTTP responses (`httpx.MockTransport`) - no
+All 206 tests run against mocked HTTP responses (`httpx.MockTransport`) - no
 network access needed, and none of the numbers in these tests came from a
 live board.
 

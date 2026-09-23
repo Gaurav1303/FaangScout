@@ -280,3 +280,54 @@ def test_markdown_lists_experience_exclusions_and_warnings():
     assert "⚠️ couldn't fetch the full posting" in md
     assert "could not resolve" not in md  # already shown as "Not covered yet"
     assert "Excluded by experience" not in render_markdown(report)  # off by default (e.g. email comment)
+
+
+# Lines exactly as html_to_text rendered them from live postings (run 11).
+MS_SWE2_SENIOR_LIVE = "\n".join([
+    "Qualifications",
+    "Required/Minimum Qualifications",
+    "\u200b \u200bBachelor's Degree in Computer Science or related technical field AND 7+ years technical "
+    "engineering experience with coding in languages including, but not limited to, C, C++, C#, Java, "
+    "JavaScript, or Python OR equivalent experience.",
+    "Job Requirements: Other & Additional",
+    "This position will be required to pass the Microsoft Cloud background check upon hire/transfer and every two years thereafter",
+    "Preferred/Additional Qualifications",
+    "\u200b \u200b- 5+ years of software engineering experience building large scale production services.",
+])
+MS_CORE_AI_LIVE = "\n".join([
+    "Qualifications",
+    "(Required and Preferred)",
+    "Bachelor's / Master\u2019s Degree in Computer Science or related technical field AND 4+ years technical "
+    "engineering experience with coding in languages including, but not limited to, C#, Java, or Python OR equivalent experience",
+])
+JPMC_SWE3_LIVE = "\n".join([
+    "Required qualifications, capabilities, and skills",
+    "Formal training or certification on software engineering concepts and 7+ years applied experience as a full stack developer",
+    "Preferred qualifications, capabilities, and skills",
+    "Exposure to cloud technologies",
+])
+
+
+@pytest.mark.parametrize("title,text,label", [
+    ("Software Engineer 2 / Senior Software Engineer", MS_SWE2_SENIOR_LIVE, "7+ yrs"),
+    ("Software Engineer II - AI/ML Infrastructure CoreAI", MS_CORE_AI_LIVE, "4+ yrs"),
+    ("Software Engineer III", JPMC_SWE3_LIVE, "7+ yrs"),
+])
+def test_live_descriptions(title, text, label):
+    assert assess(job(title, description=text)).label() == label
+
+
+def test_or_masters_alternative_on_the_same_line_keeps_the_bachelors_requirement():
+    line = ("Bachelor's Degree AND 2+ years technical engineering experience "
+            "OR Master\u2019s Degree AND 1+ year(s) technical engineering experience OR equivalent experience.")
+    assert assess(job(description=line)).label() == "2+ yrs"
+
+
+def test_line_that_is_only_an_alternative_route_is_ignored():
+    text = "Bachelor's Degree AND 3+ years experience\nOR Master\u2019s Degree AND 1+ year experience"
+    assert assess(job(description=text)).label() == "3+ yrs"
+
+
+def test_preferably_is_optional():
+    text = "2+ years of experience\nengineers with preferably 8 years of experience in analog design"
+    assert assess(job(description=text)).label() == "2+ yrs"
