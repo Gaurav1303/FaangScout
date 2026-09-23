@@ -1,0 +1,39 @@
+# Overrides that point companies at the local fixture board
+# (demo/fixture_board.py) instead of the real job-board APIs.
+#
+#   python demo/fixture_board.py --port 8765 &
+#   faangscout --companies-file demo/companies.yaml \
+#              --companies "Demo Greenhouse Co" --role "backend engineer"
+
+companies:
+  - name: Demo Greenhouse Co
+    aliases: [demogh, demo greenhouse]
+    sources:
+      - provider: greenhouse
+        config: {board: demo, base_url: "http://127.0.0.1:8765"}
+
+  - name: Demo Lever Co
+    aliases: [demolever, demo lever]
+    sources:
+      - provider: lever
+        config: {site: demo, base_url: "http://127.0.0.1:8765"}
+
+  - name: Demo Ashby Co
+    aliases: [demoashby, demo ashby]
+    sources:
+      - provider: ashby
+        config: {board: demo, base_url: "http://127.0.0.1:8765"}
+
+  # The same fixtures served in Amazon's and Eightfold's (Microsoft) shapes, so
+  # those providers can be exercised without reaching the real portals.
+  - name: Demo Amazon
+    aliases: [demoamazon]
+    sources:
+      - provider: amazon
+        config: {base_url: "http://127.0.0.1:8765"}
+
+  - name: Demo Microsoft
+    aliases: [demomicrosoft]
+    sources:
+      - provider: eightfold
+        config: {host: demo.test, domain: microsoft.com, base_url: "http://127.0.0.1:8765"}

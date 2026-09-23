@@ -1,0 +1,384 @@
+# Seed registry: company name -> career-board source(s).
+#
+# This is a best-effort starter list, not a live-verified one - board tokens
+# occasionally change when a company migrates ATS, and this file was written
+# from training knowledge rather than a live probe (see README: "Accuracy of
+# the seed registry"). A stale token fails loudly (a SourceReport error in the
+# report) rather than silently - it never looks like "this company has no
+# jobs" when the real problem is "this token is wrong".
+#
+# To add a company:
+#   1. Visit its careers page and find the underlying board. The tell is the
+#      URL: boards.greenhouse.io/{token}, jobs.lever.co/{token},
+#      jobs.ashbyhq.com/{token}, {tenant}.wdN.myworkdayjobs.com/.../{site}.
+#   2. Add an entry below (or to your own overrides file - see README).
+#
+# True FAANG-scale in-house career sites (Google, Meta, Apple, Amazon
+# corporate, Netflix) do not run on any of these third-party boards and have
+# no public API this tool can call - they are intentionally left out rather
+# than pointed at guessed endpoints. Everything else in tech mostly does.
+
+companies:
+  - name: Stripe
+    aliases: [stripe]
+    sources:
+      - provider: greenhouse
+        config: {board: stripe}
+
+  - name: Airbnb
+    aliases: [airbnb]
+    sources:
+      - provider: greenhouse
+        config: {board: airbnb}
+
+  - name: Coinbase
+    aliases: [coinbase]
+    sources:
+      - provider: greenhouse
+        config: {board: coinbase}
+
+  - name: DoorDash
+    aliases: [doordash, door dash]
+    sources:
+      - provider: greenhouse
+        config: {board: doordash}
+
+  - name: Robinhood
+    aliases: [robinhood]
+    sources:
+      - provider: greenhouse
+        config: {board: robinhood}
+
+  - name: Pinterest
+    aliases: [pinterest]
+    sources:
+      - provider: greenhouse
+        config: {board: pinterest}
+
+  - name: Reddit
+    aliases: [reddit]
+    sources:
+      - provider: greenhouse
+        config: {board: reddit}
+
+  - name: Discord
+    aliases: [discord]
+    sources:
+      - provider: greenhouse
+        config: {board: discord}
+
+  - name: Figma
+    aliases: [figma]
+    sources:
+      - provider: greenhouse
+        config: {board: figma}
+
+  - name: Databricks
+    aliases: [databricks]
+    sources:
+      - provider: greenhouse
+        config: {board: databricks}
+
+  - name: Cloudflare
+    aliases: [cloudflare]
+    sources:
+      - provider: greenhouse
+        config: {board: cloudflare}
+
+  - name: Dropbox
+    aliases: [dropbox]
+    sources:
+      - provider: greenhouse
+        config: {board: dropbox}
+
+  - name: Okta
+    aliases: [okta]
+    sources:
+      - provider: greenhouse
+        config: {board: okta}
+
+  - name: Asana
+    aliases: [asana]
+    sources:
+      - provider: greenhouse
+        config: {board: asana}
+
+  - name: Instacart
+    aliases: [instacart]
+    sources:
+      - provider: greenhouse
+        config: {board: instacart}
+
+  - name: Duolingo
+    aliases: [duolingo]
+    sources:
+      - provider: greenhouse
+        config: {board: duolingo}
+
+  - name: GitLab
+    aliases: [gitlab, git lab]
+    sources:
+      - provider: greenhouse
+        config: {board: gitlab}
+
+  - name: Twitch
+    aliases: [twitch]
+    sources:
+      - provider: greenhouse
+        config: {board: twitch}
+
+  - name: Roblox
+    aliases: [roblox]
+    sources:
+      - provider: greenhouse
+        config: {board: roblox}
+
+  - name: Notion
+    aliases: [notion]
+    sources:
+      - provider: greenhouse
+        config: {board: notion}
+
+  - name: Anthropic
+    aliases: [anthropic]
+    sources:
+      - provider: greenhouse
+        config: {board: anthropic}
+
+  - name: OpenAI
+    aliases: [openai, open ai]
+    sources:
+      - provider: ashby
+        config: {board: openai}
+
+  - name: Ramp
+    aliases: [ramp]
+    sources:
+      - provider: ashby
+        config: {board: ramp}
+
+  - name: Linear
+    aliases: [linear]
+    sources:
+      - provider: ashby
+        config: {board: linear}
+
+  - name: Vercel
+    aliases: [vercel]
+    sources:
+      - provider: greenhouse
+        config: {board: vercel}
+
+  - name: Plaid
+    aliases: [plaid]
+    sources:
+      - provider: greenhouse
+        config: {board: plaid}
+
+  - name: Palantir Technologies
+    aliases: [palantir]
+    sources:
+      - provider: lever
+        config: {site: palantir}
+
+  - name: Netflix
+    aliases: [netflix]
+    sources: []  # in-house career site, no public ATS API
+
+  - name: Google
+    aliases: [google, alphabet]
+    sources: []  # in-house career site, no public ATS API
+
+  - name: Meta
+    aliases: [meta, facebook]
+    sources: []  # in-house career site, no public ATS API
+
+  - name: Apple
+    aliases: [apple, apple inc]
+    # In-house site; search results are server-rendered HTML (2026-09-23).
+    sources:
+      - provider: apple_jobs
+        config: {locale: en-in, location_codes: {india: india-INDC}}
+
+  # Amazon runs an in-house career site; its frontend's own JSON endpoint is
+  # an internal API, not a supported public one - verify with `--check`.
+  - name: Amazon
+    aliases: [amazon, aws, amazon web services]
+    sources:
+      - provider: amazon
+        config: {}
+
+  # Microsoft moved its careers site to Eightfold (the old
+  # gcsservices.careers.microsoft.com host now fails TLS). Confirmed live.
+  - name: Microsoft
+    aliases: [microsoft, msft]
+    sources:
+      - provider: eightfold
+        config: {host: apply.careers.microsoft.com, domain: microsoft.com}
+
+# --------------------------------------------------------------------------- #
+# Companies whose board is not confirmed yet. `sources: []` keeps them
+# resolvable by name (and in the report as UNRESOLVED) until `faangscout
+# --discover` finds a working board - candidates it tries live in
+# discovery_candidates.yaml. Confirmed configs get moved up into `sources`.
+# --------------------------------------------------------------------------- #
+
+  - name: Adobe
+    aliases: [adobe, adobe inc]
+    # Confirmed by live discovery (GitHub Actions run 35820063722).
+    sources:
+      - provider: workday
+        config: {host: adobe.wd5.myworkdayjobs.com, tenant: adobe, site: external_experienced}
+
+  - name: Salesforce
+    aliases: [salesforce, sfdc]
+    # Confirmed by live discovery (GitHub Actions run 35820063722).
+    sources:
+      - provider: workday
+        config: {host: salesforce.wd12.myworkdayjobs.com, tenant: salesforce, site: External_Career_Site}
+
+  - name: Walmart
+    aliases: [walmart, walmart global tech, walmart labs]
+    sources: []  # search runs through a versioned GraphQL query - too brittle to rely on
+
+  - name: NVIDIA
+    aliases: [nvidia]
+    # Confirmed by live discovery (GitHub Actions run 35820063722).
+    sources:
+      - provider: workday
+        config: {host: nvidia.wd5.myworkdayjobs.com, tenant: nvidia, site: NVIDIAExternalCareerSite}
+
+  - name: Mastercard
+    aliases: [mastercard, master card]
+    # Confirmed by live discovery (GitHub Actions run 35820063722).
+    sources:
+      - provider: workday
+        config: {host: mastercard.wd1.myworkdayjobs.com, tenant: mastercard, site: CorporateCareers}
+
+  - name: Intuit
+    aliases: [intuit]
+    # Radancy TalentBrew site; no posting dates, so dated by first sighting.
+    sources:
+      - provider: talentbrew
+        config: {host: jobs.intuit.com}
+
+  - name: Qualcomm
+    aliases: [qualcomm]
+    # Eightfold; search API confirmed live on 2026-09-23.
+    sources:
+      - provider: eightfold
+        config: {host: careers.qualcomm.com, domain: qualcomm.com}
+
+  - name: Nutanix
+    aliases: [nutanix, nunatix]
+    # careers.nutanix.com sits behind a bot check, but its Jobvite board
+    # (jobs.jobvite.com/nutanix) is public. No dates: dated by first sighting.
+    sources:
+      - provider: jobvite
+        config: {company: nutanix}
+
+  - name: Rubrik
+    aliases: [rubrik, rubirik]
+    # Confirmed by live discovery (GitHub Actions run 35820063722).
+    sources:
+      - provider: greenhouse
+        config: {board: rubrik}
+
+  - name: Postman
+    aliases: [postman]
+    # Workday on wd108 (outside discovery's host list); its careers page links
+    # postman.wd108.myworkdayjobs.com/careers - seen in a browser capture 2026-09-23.
+    sources:
+      - provider: workday
+        config: {host: postman.wd108.myworkdayjobs.com, tenant: postman, site: careers}
+
+  - name: Cohesity
+    aliases: [cohesity]
+    # Confirmed by live discovery (GitHub Actions run 35820063722).
+    sources:
+      - provider: workday
+        config: {host: cohesity.wd5.myworkdayjobs.com, tenant: cohesity, site: Cohesity_Careers}
+
+  - name: PhonePe
+    aliases: [phonepe, phone pe]
+    # The careers page's own JSON feed; postings link SmartRecruiters (2026-09-23).
+    sources:
+      - provider: phonepe_feed
+        config: {}
+
+  - name: Compass
+    aliases: [compass, urban compass]
+    # Confirmed by live discovery (GitHub Actions run 35820063722).
+    sources:
+      - provider: greenhouse
+        config: {board: urbancompass}
+
+  - name: ShareChat
+    aliases: [sharechat, share chat, moj]
+    # sharechat.com/careers loads its list from its own API (2026-09-23).
+    sources:
+      - provider: sharechat
+        config: {}
+
+  - name: Zepto
+    aliases: [zepto]
+    sources: []  # careers site blocks scripted access (CloudFront), 2026-09-23
+
+  - name: Rippling
+    aliases: [rippling]
+    # Rippling's own ATS; no posting dates, so dated by first sighting.
+    sources:
+      - provider: rippling_ats
+        config: {board: rippling}
+
+  - name: Arcesium
+    aliases: [arcesium]
+    sources: []  # careers site blocks scripted access (Vercel checkpoint), 2026-09-23
+
+  - name: Indeed
+    aliases: [indeed]
+    sources: []  # careers site blocks scripted access, 2026-09-23
+
+  - name: Sprinklr
+    aliases: [sprinklr]
+    # Confirmed by live discovery (GitHub Actions run 35820063722).
+    sources:
+      - provider: workday
+        config: {host: sprinklr.wd1.myworkdayjobs.com, tenant: sprinklr, site: careers}
+
+  - name: Zomato
+    aliases: [zomato]
+    sources: []  # no public job board found (Eternal's careers pages), 2026-09-23
+
+# No working board yet - in-house sites, or careers pages that block scripted
+# access. Listed so the report names them instead of silently skipping them.
+
+  - name: JPMorgan Chase
+    aliases: [jp morgan, jpmorgan, jpmc, jp morgan chase, j p morgan]
+    # Oracle Recruiting Cloud; site found on the careers page 2026-09-23.
+    sources:
+      - provider: oracle_hcm
+        config: {host: jpmc.fa.oraclecloud.com, site: CX_1001}
+
+  - name: D. E. Shaw
+    aliases: [de shaw, deshaw, d e shaw, d.e. shaw]
+    sources: []  # India site takes general applications only; no job list, 2026-09-23
+
+  - name: MathWorks
+    aliases: [mathworks, the mathworks, math works]
+    sources: []  # careers site blocks scripted access (Access Denied), 2026-09-23
+
+  - name: Kotak Mahindra Bank
+    aliases: [kotak, kotak mahindra]
+    # Oracle Recruiting Cloud: the \"All Jobs\" button on kotak.bank.in's
+    # career-apply-now page links hcbt.fa.em2.oraclecloud.com, site CX (2026-09-23).
+    sources:
+      - provider: oracle_hcm
+        config: {host: hcbt.fa.em2.oraclecloud.com, site: CX}
+
+  - name: DP World
+    aliases: [dp world, dpworld]
+    # Oracle Recruiting Cloud; linked from dpworld.com/en/careers (2026-09-23).
+    sources:
+      - provider: oracle_hcm
+        config: {host: ehpv.fa.em2.oraclecloud.com, site: CX_1}

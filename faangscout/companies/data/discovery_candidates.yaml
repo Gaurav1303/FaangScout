@@ -1,0 +1,38 @@
+# What `faangscout --discover` tries for a company with no confirmed board.
+#
+# Keys are registry names (see known_boards.yaml). For each company:
+#   slugs:   board tokens to try on Greenhouse, Lever, Ashby, and
+#            SmartRecruiters, in order. Slugs derived from the name and
+#            aliases are always tried too - list only the non-obvious ones
+#            (old brand names, legal entities).
+#   workday: tenant/site pairs to try. Workday assigns each tenant a numbered
+#            host (wd1, wd5, ...) that can't be derived from the name; list
+#            the likely one under `hosts` and discovery falls back to the
+#            common numbers.
+#
+# Every entry here is an unverified guess. Discovery records which one
+# actually answered, with sample job titles, so a hit can be sanity-checked
+# (a same-named but unrelated company on the same ATS is the main risk).
+
+candidates:
+  Walmart:
+    workday:
+      - {tenant: walmart, hosts: [wd5], sites: [WalmartExternal]}
+  Intuit:
+    workday:
+      - {tenant: intuit, sites: [Intuit, External, careers]}
+  Nutanix:
+    workday:
+      - {tenant: nutanix, sites: [Nutanix_Careers, Careers, External]}
+  Arcesium:
+    workday:
+      - {tenant: arcesium, sites: [Arcesium, External, careers]}
+  ShareChat:
+    slugs: [mohallatech, sharechatmoj]
+  Zepto:
+    slugs: [zeptonow, kiranakart]
+  PhonePe:
+    slugs: [phonepeindia]
+  Zomato:
+    # Not 'eternal': that Lever board is an unrelated NYC/SF company.
+    slugs: [zomatoltd]

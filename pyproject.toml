@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "faangscout"
+version = "0.1.0"
+description = "Scout company career pages for openings matching your role, posted in a recent time window."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "httpx>=0.27",
+    "PyYAML>=6.0",
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.29",
+    "pydantic>=2.0",
+]
+
+[project.optional-dependencies]
+semantic = ["anthropic>=0.40"]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+faangscout = "faangscout.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["faangscout*"]
+
+[tool.setuptools.package-data]
+faangscout = ["companies/data/*.yaml", "api/static/*"]
