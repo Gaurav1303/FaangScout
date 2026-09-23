@@ -11,6 +11,7 @@ from . import (  # noqa: F401
     amazon,
     apple,
     ashby,
+    atlassian,
     eightfold,
     greenhouse,
     jobvite,

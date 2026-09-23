@@ -424,7 +424,10 @@ companies:
 
   - name: Visa
     aliases: [visa, visa inc]
-    sources: []
+    # corporate.visa.com/en/jobs redirects to this Workday board (browser capture, 2026-09-23).
+    sources:
+      - provider: workday
+        config: {host: visa.wd5.myworkdayjobs.com, tenant: visa, site: Visa}
 
   - name: Palo Alto Networks
     aliases: [palo alto networks, palo alto]
@@ -525,7 +528,10 @@ companies:
 
   - name: Atlassian
     aliases: [atlassian]
-    sources: []
+    # The careers page's own listing endpoint (browser capture, 2026-09-23).
+    sources:
+      - provider: atlassian
+        config: {}
 
   - name: Confluent
     aliases: [confluent]

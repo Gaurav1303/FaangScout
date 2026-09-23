@@ -412,3 +412,36 @@ def test_software_eng_abbreviation_matches_role():
             for t in ("Software Eng - Content Management Systems", "Software Engineering Manager - SCI")]
     kept, _ = RoleKeywordFilter().apply(jobs, SearchCriteria.build(["Apple"], role="software engineer"))
     assert [j.title for j in kept] == ["Software Eng - Content Management Systems"]
+
+
+class TestAtlassian:
+    LISTING = [{
+        "portalJobPost": {"portalId": 17, "id": 25590,
+                          "portalUrl": "https://globalcareers-atlassian.icims.com/jobs/25590/software-engineer/job",
+                          "updatedDate": "2026-09-22 12:42 AM"},
+        "id": 25590, "portalId": 17, "title": "Software Engineer, Backend ",
+        "locations": ["Bengaluru - India", "Remote - India"], "category": "Engineering",
+        "overview": "<p>Working at Atlassian</p>", "responsibilities": "<p>Build Jira.</p>",
+        "qualifications": "<ul><li>3+ years of experience</li></ul>",
+        "applyUrl": "https://globalcareers-atlassian.icims.com/jobs/25590/login",
+    }]
+
+    def test_parses_listing(self):
+        from faangscout.providers.atlassian import AtlassianProvider
+
+        provider = AtlassianProvider(client=client_with(lambda r: httpx.Response(200, json=self.LISTING)))
+        job = provider.fetch({"company_name": "Atlassian"}, HINTS)[0]
+        assert job.title == "Software Engineer, Backend"
+        assert job.url.startswith("https://globalcareers-atlassian.icims.com/jobs/25590/")
+        assert job.locations == ("Bengaluru - India", "Remote - India")
+        assert job.department == "Engineering"
+        assert job.posted_at == datetime(2026, 9, 22, 0, 42, tzinfo=UTC)
+        assert job.precision == Precision.APPROXIMATE
+        assert "3+ years of experience" in job.description and "Build Jira." in job.description
+
+    def test_unexpected_shape_raises(self):
+        from faangscout.providers.atlassian import AtlassianProvider
+
+        provider = AtlassianProvider(client=client_with(lambda r: httpx.Response(200, json={"error": "x"})))
+        with pytest.raises(ProviderError):
+            provider.fetch({}, HINTS)
