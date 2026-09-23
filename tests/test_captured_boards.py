@@ -409,7 +409,7 @@ def test_software_eng_abbreviation_matches_role():
     from faangscout.models import SearchCriteria
 
     jobs = [Job(company="Apple", title=t, url=t, source="apple_jobs")
-            for t in ("Software Eng - Content Management Systems", "Software Engineering Manager - SCI")]
+            for t in ("Software Eng - Content Management Systems", "Engineering Program Manager")]
     kept, _ = RoleKeywordFilter().apply(jobs, SearchCriteria.build(["Apple"], role="software engineer"))
     assert [j.title for j in kept] == ["Software Eng - Content Management Systems"]
 
@@ -445,3 +445,80 @@ class TestAtlassian:
         provider = AtlassianProvider(client=client_with(lambda r: httpx.Response(200, json={"error": "x"})))
         with pytest.raises(ProviderError):
             provider.fetch({}, HINTS)
+
+
+def test_talentbrew_palo_alto_template():
+    row = ('<li class="section29__search-results-li"> <a class="section29__search-results-link" '
+           'href="/en/job/hyderabad/staff-software-engineer/47263/97425296192" data-job-id="97425296192"> '
+           '<h2 class="section29__search-results-job-title">Staff Software Engineer</h2> '
+           '<div class="section29__result-info-container"> <span class="section29__result-location newLoc">500081, India</span> '
+           '</div> </a> </li>')
+    html = (f'<section id="search-results" data-total-pages="1"> <section id="search-results-list"> '
+            f'<ul class="section29__search-results-ul"> {row} </ul></section></section>')
+
+    def handler(request):
+        assert request.url.path == "/en/search-jobs/software engineer"
+        return httpx.Response(200, text=html)
+
+    jobs = TalentBrewProvider(client=client_with(handler)).fetch(
+        {"host": "jobs.paloaltonetworks.com", "base_url": "https://jobs.paloaltonetworks.com/en"},
+        FetchHints(role_query="software engineer"),
+    )
+    assert [(j.title, j.locations, j.url) for j in jobs] == [(
+        "Staff Software Engineer", ("500081, India",),
+        "https://jobs.paloaltonetworks.com/en/job/hyderabad/staff-software-engineer/47263/97425296192",
+    )]
+
+
+class TestGoldmanSachs:
+    ITEM = {"roleId": "154399_GS_MID_CAREER", "corporateTitle": "Associate",
+            "jobTitle": "The Core Engineering-Bengaluru-Associate-Software Engineering",
+            "jobFunction": "Software Engineering",
+            "locations": [{"primary": True, "state": "Karnataka", "country": "India", "city": "Bengaluru"}],
+            "status": "POSTED", "division": "The Core Engineering", "externalSource": {"sourceId": "154399"}}
+
+    def test_graphql_search_filtered_to_the_location(self):
+        import json as _json
+        from faangscout.providers.goldman_sachs import GoldmanSachsProvider
+
+        sent = []
+
+        def handler(request):
+            sent.append(_json.loads(request.content))
+            return httpx.Response(200, json={"data": {"roleSearch": {"totalCount": 1, "items": [self.ITEM]}}})
+
+        jobs = GoldmanSachsProvider(client=client_with(handler)).fetch({}, FetchHints(location="India"))
+        search = sent[0]["variables"]["searchQueryInput"]
+        assert search["filters"] == [{"filterCategoryType": "LOCATION", "filters": [{"filter": "India", "subFilters": []}]}]
+        assert search["sort"] == {"sortStrategy": "POSTED_DATE", "sortOrder": "DESC"}
+        job = jobs[0]
+        assert job.url == "https://higher.gs.com/roles/154399"
+        assert job.locations == ("Bengaluru, Karnataka, India",)
+        assert job.precision == Precision.FIRST_SEEN
+
+    def test_title_matches_role_and_ladder(self):
+        from faangscout.companies.levels import company_level
+        from faangscout.filters.role import RoleKeywordFilter
+        from faangscout.models import SearchCriteria
+
+        job = Job(company="Goldman Sachs", title=self.ITEM["jobTitle"], url="u", source="goldman_sachs")
+        kept, _ = RoleKeywordFilter().apply([job], SearchCriteria.build(["x"], role="software engineer"))
+        assert kept == [job]
+        assert company_level("Goldman Sachs", job.title).sde == 2
+
+    def test_graphql_errors_raise(self):
+        from faangscout.providers.goldman_sachs import GoldmanSachsProvider
+
+        provider = GoldmanSachsProvider(client=client_with(lambda r: httpx.Response(200, json={"errors": [{"message": "bad"}]})))
+        with pytest.raises(ProviderError):
+            provider.fetch({}, HINTS)
+
+    def test_details_from_next_data(self):
+        from faangscout.providers.goldman_sachs import GoldmanSachsProvider
+
+        page = ('<html><script id="__NEXT_DATA__" type="application/json">'
+                '{"props": {"pageProps": {"role": {"descriptionHtml": "<p>3+ years of experience in Java</p>"}}}}'
+                '</script></html>')
+        provider = GoldmanSachsProvider(client=client_with(lambda r: httpx.Response(200, text=page)))
+        job = Job(company="Goldman Sachs", title="t", url="u", source="goldman_sachs", detail_url="https://higher.gs.com/roles/1")
+        assert provider.fetch_details(job).description.strip() == "3+ years of experience in Java"

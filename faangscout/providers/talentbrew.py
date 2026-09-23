@@ -7,6 +7,11 @@ Intuit's site (2026-09-23), which reported 156 results over 11 pages of 15.
 Paging is ``?p=N``; a page that adds nothing new ends the crawl, so a site
 that ignores the parameter costs one extra request rather than a loop.
 
+Palo Alto Networks runs the same platform with a different template
+(``section29__...`` classes, an ``<h2 class=...>`` title, links under
+``/en/job/``) - the patterns accept both; its ``base_url`` carries the
+``/en`` prefix.
+
 Rows carry no date, so jobs are ``Precision.FIRST_SEEN``.
 """
 
@@ -20,9 +25,9 @@ from ..models import FetchHints, Job, Precision
 from ..normalize import detect_remote, html_to_text
 from .base import Provider, ProviderError, register
 
-_ITEM = re.compile(r"<li\b[^>]*>(?P<body>\s*<a href=\"(?P<href>/job/[^\"]+)\".*?)</li>", re.S)
-_TITLE = re.compile(r"<h2>(.*?)</h2>", re.S)
-_LOCATION = re.compile(r'<span class="job-location">(.*?)</span>', re.S)
+_ITEM = re.compile(r"<li\b[^>]*>(?P<body>\s*<a\b[^>]*?href=\"(?P<href>(?:/[a-z]{2})?/job/[^\"]+)\".*?)</li>", re.S)
+_TITLE = re.compile(r"<h2\b[^>]*>(.*?)</h2>", re.S)
+_LOCATION = re.compile(r'<span class="[^"]*(?:job-location|result-location)[^"]*">(.*?)</span>', re.S)
 _TOTAL_PAGES = re.compile(r'data-total-pages="(\d+)"')
 _MAX_PAGES = 25
 
@@ -34,6 +39,8 @@ class TalentBrewProvider(Provider):
         if not host:
             raise ProviderError("talentbrew: config requires 'host'")
         base = config.get("base_url", f"https://{host}").rstrip("/")
+        # Job links are site-absolute ("/en/job/..."), so they hang off the origin.
+        origin = "/".join(base.split("/")[:3])
         keyword = hints.role_query or config.get("keyword", "")
         company = config.get("company_name", host)
 
@@ -54,17 +61,18 @@ class TalentBrewProvider(Provider):
                 location = _LOCATION.search(body)
                 category = re.search(r"data-category='([^']*)'", item.group(0))
                 loc = " ".join(html_to_text(location.group(1)).split()) if location else ""
+                page_url = f"{origin}{href}"
                 jobs.setdefault(href, Job(
                     company=company,
                     title=" ".join(html_to_text(title.group(1)).split()) if title else "",
-                    url=f"{base}{href}",
+                    url=page_url,
                     source="talentbrew",
                     external_id=href.rstrip("/").rsplit("/", 1)[-1],
                     precision=Precision.FIRST_SEEN,
                     locations=(loc,) if loc else (),
                     remote=detect_remote(loc),
                     department=category.group(1) if category else None,
-                    detail_url=f"{base}{href}",
+                    detail_url=page_url,
                 ))
             if page >= total_pages or len(jobs) == before or len(jobs) >= hints.max_results:
                 break

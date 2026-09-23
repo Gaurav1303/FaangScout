@@ -97,6 +97,13 @@ companies:
     - {match: '\bengineer\s*(?:ii|2)\b', name: SE 2, sde: 2, years: [2, 5]}
     - {match: '\bengineer\s*(?:i|1)\b', name: SE 1, sde: 1, years: [0, 2]}
 
+  # Titles embed the corporate title: "...-Bengaluru-Associate-Software Engineering".
+  Goldman Sachs:
+    - {match: '\bmanaging director\b', name: Managing Director, sde: 5, years: [12, null]}
+    - {match: '\bvice president\b|\bvp\b', name: Vice President, sde: 3, years: [6, null]}
+    - {match: '\bassociate\b', name: Associate, sde: 2, years: [2, 6]}
+    - {match: '\banalyst\b', name: Analyst, sde: 1, years: [0, 3]}
+
   D. E. Shaw:
     - {match: '\b(?:senior member technical|smt)\b', name: Senior Member Technical, sde: 2, years: [3, 5]}
     - {match: '\bmember technical\b', name: Member Technical, sde: 1, years: [0, 3]}

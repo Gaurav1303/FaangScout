@@ -13,6 +13,7 @@ from . import (  # noqa: F401
     ashby,
     atlassian,
     eightfold,
+    goldman_sachs,
     greenhouse,
     jobvite,
     lever,
