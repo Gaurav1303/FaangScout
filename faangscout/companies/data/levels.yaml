@@ -104,6 +104,14 @@ companies:
     - {match: '\bassociate\b', name: Associate, sde: 2, years: [2, 6]}
     - {match: '\banalyst\b', name: Analyst, sde: 1, years: [0, 3]}
 
+  # Google numbers from L3: "Software Engineer II" is entry level, "III" is SDE-2.
+  Google:
+    - {match: '\bsenior staff\b|\bprincipal\b|\bdistinguished\b', name: Senior Staff, sde: 5, years: [10, null]}
+    - {match: '\bstaff\b', name: Staff SWE, sde: 4, years: [8, null]}
+    - {match: '\b(?:senior|sr\.?)\s', name: Senior SWE, sde: 3, years: [5, null]}
+    - {match: '\bengineer\s*(?:iii|3)\b', name: SWE III, sde: 2, years: [2, 5]}
+    - {match: '\bengineer\s*(?:ii|2)\b|\bearly career\b|\bnew grad', name: SWE II, sde: 1, years: [0, 2]}
+
   D. E. Shaw:
     - {match: '\b(?:senior member technical|smt)\b', name: Senior Member Technical, sde: 2, years: [3, 5]}
     - {match: '\bmember technical\b', name: Member Technical, sde: 1, years: [0, 3]}

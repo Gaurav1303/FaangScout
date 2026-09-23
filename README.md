@@ -212,6 +212,25 @@ output.
 Run this first whenever a company returns nothing and you expected results -
 it distinguishes "genuinely no new postings" from "this board token is stale."
 
+## Companies
+
+`scout.yaml` lists the companies searched. Besides the original 31, there
+are 28 more that pay roughly **35-40 LPA or more for ~3 years (SDE-2)** in
+India, according to levels.fyi and LeetCode Discuss offer threads (Sept
+2026). These are approximate and vary by team:
+
+| Band (~3 yrs, India) | Companies |
+|---|---|
+| ~35-45 LPA | Flipkart, Meesho, Goldman Sachs (Associate), ServiceNow (IC2), Visa, Palo Alto Networks, Zscaler, PayPal, Razorpay, CRED, Groww, Myntra, Dream Sports, Tekion, BrowserStack, Autodesk, Expedia, Twilio, Harness, Zeta |
+| ~50 LPA and up | Swiggy, Uber, Atlassian, Confluent, Databricks, LinkedIn, Booking.com, Google |
+
+Of these, 20 have working boards. The other 8 are listed with a reason, and
+the email names them under "No match today":
+- Uber, ServiceNow: Cloudflare bot check
+- Booking.com: returns 403
+- Flipkart, Dream Sports, BrowserStack, LinkedIn: no readable job list
+- Myntra: site under maintenance
+
 ## Supported job boards
 
 | Provider | Used by (in the bundled registry) | Date quality |
@@ -227,7 +246,12 @@ it distinguishes "genuinely no new postings" from "this board token is stale."
 | `sharechat` | ShareChat (its careers API) | exact |
 | `jobvite` | Nutanix | none - first seen |
 | `rippling_ats` | Rippling | none - first seen |
-| `talentbrew` | Intuit | none - first seen |
+| `talentbrew` | Intuit, Palo Alto Networks | none - first seen |
+| `smartrecruiters` | (fixed: listing `ref` is the posting's API URL) | exact |
+| `atlassian` | Atlassian (its careers listing endpoint) | last updated |
+| `goldman_sachs` | Goldman Sachs (higher.gs.com GraphQL search) | none - first seen |
+| `google_careers` | Google (server-rendered search results) | none - first seen |
+| `mynexthire` | Swiggy | exact |
 
 Every one of these was confirmed against the live service from a GitHub
 Actions runner (September 2026) - including that the job links in the report

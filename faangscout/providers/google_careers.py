@@ -10,13 +10,17 @@ server-side; ``page=N`` pages through 20 at a time.
 The class names are Google's generated ones and will change some day; a page
 with no recognisable cards raises rather than reading as "no jobs".
 
-Cards show no posting date, so jobs are ``Precision.FIRST_SEEN``. The card's
-qualifications ("2 years of experience with ...") serve as the description.
+Cards show no posting date, so jobs are ``Precision.FIRST_SEEN``. A card
+lists only the first few qualifications (a "Senior Staff" card can show just
+"3 years of experience with ..."), so the requirement is read from the job's
+own page, from "Minimum qualifications" on - only for jobs that pass the
+cheaper filters.
 """
 
 from __future__ import annotations
 
 import re
+from dataclasses import replace
 
 from ..models import FetchHints, Job, Precision
 from ..normalize import detect_remote, html_to_text
@@ -26,7 +30,8 @@ _BASE = "https://www.google.com/about/careers/applications/"
 _CARD = re.compile(r'<h3 class="QJPWVe">(?P<title>.*?)</h3>(?P<rest>.*?)(?=<h3 class="QJPWVe">|$)', re.S)
 _LOCATION = re.compile(r'>place</i>\s*<span class="r0wTof[^"]*">(.*?)</span>', re.S)
 _LINK = re.compile(r'href="(jobs/results/(\d+)-[^"?]*)')
-_QUALIFICATIONS = re.compile(r"<ul>(.*?)</ul>", re.S)
+_MINIMUM = re.compile(r"minimum qualifications", re.I)
+_SECTION_END = re.compile(r"about the job|responsibilities", re.I)
 _MAX_PAGES = 10
 
 
@@ -65,15 +70,25 @@ class GoogleCareersProvider(Provider):
             loc for raw in _LOCATION.findall(rest)
             for loc in (p.strip() for p in html_to_text(raw).split(";")) if loc
         ))
-        quals = _QUALIFICATIONS.search(rest)
+        url = f"{base}{link.group(1)}"
         return Job(
             company=company,
             title=" ".join(html_to_text(m.group("title")).split()),
-            url=f"{base}{link.group(1)}",
+            url=url,
             source="google_careers",
             external_id=link.group(2),
             precision=Precision.FIRST_SEEN,
             locations=locations,
             remote=detect_remote(" ".join(locations)),
-            description=html_to_text(quals.group(1)) if quals else "",
+            detail_url=url,
         )
+
+    def fetch_details(self, job: Job) -> Job:
+        """The job page's qualifications (minimum, then preferred) as text."""
+        html = self._get_text(job.detail_url)
+        start = _MINIMUM.search(html)
+        if not start:
+            return replace(job, description=html_to_text(html))
+        end = _SECTION_END.search(html, start.end())
+        chunk = html[start.start(): end.start() if end else start.start() + 8000]
+        return replace(job, description=html_to_text(chunk))

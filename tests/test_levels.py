@@ -117,3 +117,15 @@ class TestEitherCounts:
                                _job("Salesforce", "LMTS")], 3)
         assert kept == []
         assert rejected["Senior Member of Technical Staff"].startswith("requires ~4–8 yrs (Salesforce SMTS)")
+
+
+@pytest.mark.parametrize(
+    "title, sde",
+    [("Software Engineer III, Infrastructure, Google Cloud Storage", 2),
+     ("Software Engineer II, YouTube", 1),
+     ("Senior Software Engineer, Search", 3),
+     ("Senior Staff Software Engineer, YouTube Create", 5),
+     ("Software Engineer, PhD, Early Career, 2026", 1)],
+)
+def test_google_ladder(title, sde):
+    assert company_level("Google", title).sde == sde

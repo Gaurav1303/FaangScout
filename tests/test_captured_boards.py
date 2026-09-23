@@ -556,8 +556,24 @@ class TestGoogleCareers:
         assert job.title == "Software Engineer III, Infrastructure"
         assert job.url == "https://www.google.com/about/careers/applications/jobs/results/101994312325046982-slug"
         assert job.locations == ("Hyderabad, Telangana, India",)
-        assert "2 years of experience with software development." in job.description
+        assert job.detail_url == job.url and job.description == ""
         assert job.precision == Precision.FIRST_SEEN
+
+    def test_details_read_minimum_qualifications_from_the_job_page(self):
+        from faangscout.providers.google_careers import GoogleCareersProvider
+
+        page = ("<html><nav>Jobs</nav><h3>Minimum qualifications:</h3><ul><li>Bachelor's degree.</li>"
+                "<li>8 years of experience with software development.</li></ul><h3>Preferred qualifications:</h3>"
+                "<ul><li>Master's degree.</li></ul><h3>About the job</h3><p>Lots of text.</p></html>")
+        provider = GoogleCareersProvider(client=client_with(lambda r: httpx.Response(200, text=page)))
+        job = Job(company="Google", title="Senior Staff Software Engineer", url="u", source="google_careers",
+                  detail_url="https://www.google.com/about/careers/applications/jobs/results/1-x")
+        detailed = provider.fetch_details(job)
+        assert "8 years of experience with software development." in detailed.description
+        assert "Lots of text." not in detailed.description
+
+        from faangscout.experience import assess
+        assert assess(detailed).min_years == 8
 
     def test_layout_change_raises(self):
         from faangscout.providers.google_careers import GoogleCareersProvider
