@@ -17,13 +17,14 @@ Days Ago") - a day, not a time - so results are ``Precision.DATE_ONLY``.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from ..models import FetchHints, Job, Precision
 from ..normalize import detect_remote, parse_relative
 from .base import Provider, ProviderError, register
 
 _PAGE_SIZE = 20
+_DAY = timedelta(days=1)
 
 
 def _posted_day(text: str) -> datetime | None:
@@ -53,21 +54,28 @@ class WorkdayProvider(Provider):
         jobs: list[Job] = []
         offset = 0
         while True:
-            body = {
-                "appliedFacets": {},
-                "limit": _PAGE_SIZE,
-                "offset": offset,
-                "searchText": hints.role_query or "",
-            }
+            # No searchText on purpose: with a keyword Workday orders by
+            # relevance (NVIDIA's first page for "software engineer" was all
+            # 14-30+ days old, out of 1,695), so today's postings can sit past
+            # any page cap. Without one it lists newest first, and the role
+            # filter does the matching.
+            body = {"appliedFacets": {}, "limit": _PAGE_SIZE, "offset": offset, "searchText": ""}
             payload = self._request_json("POST", url, json=body)
             if not isinstance(payload, dict):
                 raise ProviderError(f"workday: {tenant}/{site} -> unexpected response (not a JSON object)")
 
             postings = payload.get("jobPostings", [])
             total = payload.get("total", offset + len(postings))
-            jobs.extend(self._to_job(entry, company=company, host=host, site=site) for entry in postings)
+            page = [self._to_job(entry, company=company, host=host, site=site) for entry in postings]
+            jobs.extend(page)
             offset += len(postings)
             if not postings or offset >= total or offset >= hints.max_results:
+                break
+            # Newest first: once a whole page is older than the window (with
+            # a day's grace, since these are day-only dates), stop paging.
+            if hints.since and all(
+                j.posted_at is not None and j.posted_at + _DAY < hints.since for j in page
+            ):
                 break
 
         return jobs

@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 import httpx
 import pytest
@@ -483,3 +483,54 @@ class TestRetries:
         provider._sleep = sleeps.append
         provider.fetch({"host": "a.wd1.myworkdayjobs.com", "tenant": "a", "site": "X"}, HINTS)
         assert sleeps == [2.0]
+
+
+class TestWorkdayOrdering:
+    """Keyword search is relevance-ordered on Workday - fetch the date-ordered list instead."""
+
+    def _posting(self, i, posted):
+        return {"title": f"Software Engineer {i}", "externalPath": f"/job/X/{i}", "postedOn": posted}
+
+    def test_never_sends_search_text(self):
+        bodies = []
+
+        def handler(request):
+            import json as _json
+            bodies.append(_json.loads(request.content))
+            return httpx.Response(200, json={"total": 0, "jobPostings": []})
+
+        WorkdayProvider(client=client_with(handler)).fetch(
+            {"host": "n.wd5.myworkdayjobs.com", "tenant": "n", "site": "S"}, FetchHints(role_query="software engineer"))
+        assert bodies[0]["searchText"] == ""
+
+    def test_stops_paging_once_a_page_predates_the_window(self):
+        offsets = []
+
+        def handler(request):
+            import json as _json
+            offset = _json.loads(request.content)["offset"]
+            offsets.append(offset)
+            posted = "Posted Today" if offset == 0 else "Posted 30+ Days Ago"
+            return httpx.Response(200, json={"total": 2000, "jobPostings": [self._posting(offset + i, posted) for i in range(20)]})
+
+        since = datetime.now(UTC) - timedelta(hours=24)
+        jobs = WorkdayProvider(client=client_with(handler)).fetch(
+            {"host": "n.wd5.myworkdayjobs.com", "tenant": "n", "site": "S"}, FetchHints(since=since, max_results=400))
+        assert offsets == [0, 20]  # page 2 is all old -> stop, not 20 pages
+        assert len(jobs) == 40
+
+    def test_yesterday_page_does_not_stop_paging(self):
+        """'Posted Yesterday' is inside a 24h window under the day-only grace."""
+        offsets = []
+
+        def handler(request):
+            import json as _json
+            offset = _json.loads(request.content)["offset"]
+            offsets.append(offset)
+            posted = {0: "Posted Today", 20: "Posted Yesterday"}.get(offset, "Posted 30+ Days Ago")
+            return httpx.Response(200, json={"total": 2000, "jobPostings": [self._posting(offset + i, posted) for i in range(20)]})
+
+        since = datetime.now(UTC) - timedelta(hours=24)
+        WorkdayProvider(client=client_with(handler)).fetch(
+            {"host": "n.wd5.myworkdayjobs.com", "tenant": "n", "site": "S"}, FetchHints(since=since))
+        assert offsets == [0, 20, 40]
