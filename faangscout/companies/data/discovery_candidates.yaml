@@ -21,9 +21,6 @@ candidates:
   Intuit:
     workday:
       - {tenant: intuit, sites: [Intuit, External, careers]}
-  Qualcomm:
-    workday:
-      - {tenant: qualcomm, hosts: [wd5], sites: [External, Qualcomm, careers]}
   Nutanix:
     workday:
       - {tenant: nutanix, sites: [Nutanix_Careers, Careers, External]}

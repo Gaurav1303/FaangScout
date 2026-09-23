@@ -6,10 +6,11 @@ import pytest
 from faangscout.models import FetchHints, Precision
 from faangscout.providers.amazon import AmazonProvider
 from faangscout.providers.ashby import AshbyProvider
+from faangscout.providers.eightfold import EightfoldProvider
 from faangscout.providers.base import ProviderError
 from faangscout.providers.greenhouse import GreenhouseProvider
 from faangscout.providers.lever import LeverProvider
-from faangscout.providers.microsoft import MicrosoftProvider
+from faangscout.providers.oracle_hcm import OracleHcmProvider
 from faangscout.providers.smartrecruiters import SmartRecruitersProvider
 from faangscout.providers.workday import WorkdayProvider
 
@@ -275,74 +276,133 @@ class TestAmazon:
             provider.fetch({}, HINTS)
 
 
-class TestMicrosoft:
-    """gcsservices.careers.microsoft.com search API - nested result envelope."""
+class TestEightfold:
+    """PCSX search, shape copied from a live apply.careers.microsoft.com response."""
 
-    def _payload(self, n=1, total=1):
-        return {
-            "operationResult": {
-                "result": {
-                    "totalJobs": total,
-                    "jobs": [
-                        {
-                            "jobId": f"18123{i}",
-                            "title": "Senior Software Engineer",
-                            "postingDate": "2026-03-05T00:00:00+00:00",
-                            "properties": {
-                                "primaryLocation": "Redmond, Washington, United States",
-                                "locations": ["Redmond, Washington, United States"],
-                                "workSiteFlexibility": "Up to 100% work from home",
-                                "profession": "Software Engineering",
-                                "employmentType": "Full-Time",
-                            },
-                        }
-                        for i in range(n)
-                    ],
-                }
-            }
-        }
+    LIVE_POSITION = {
+        "id": 1970393556944735, "displayJobId": "200045438",
+        "name": "Principal Software Engineering Manager - GitHub (CoreAI)",
+        "locations": ["United States, California, Mountain View"],
+        "standardizedLocations": ["Mountain View, CA, US"],
+        "postedTs": 1790129489, "department": "Software Engineering",
+        "creationTs": 1784926896, "workLocationOption": "onsite",
+        "positionUrl": "/careers/job/1970393556944735",
+    }
+    CONFIG = {"host": "apply.careers.microsoft.com", "domain": "microsoft.com", "company_name": "Microsoft"}
 
-    def test_happy_path(self):
-        provider = MicrosoftProvider(client=client_with(lambda r: httpx.Response(200, json=self._payload())))
-        jobs = provider.fetch({"company_name": "Microsoft"}, HINTS)
+    def _payload(self, positions, count=None):
+        data = {"positions": positions}
+        if count is not None:
+            data["count"] = count
+        return {"status": 200, "error": {"message": "", "body": ""}, "data": data}
 
-        assert len(jobs) == 1
-        job = jobs[0]
-        assert job.title == "Senior Software Engineer"
-        assert job.url == "https://jobs.careers.microsoft.com/global/en/job/181230"
-        assert job.source == "microsoft"
-        assert job.precision == Precision.EXACT
-        assert job.posted_at == datetime(2026, 3, 5, tzinfo=UTC)
-        assert job.locations == ("Redmond, Washington, United States",)
-        assert job.remote is True  # "work from home"
+    def test_live_shape(self):
+        provider = EightfoldProvider(client=client_with(
+            lambda r: httpx.Response(200, json=self._payload([self.LIVE_POSITION], count=1))))
+        [job] = provider.fetch(self.CONFIG, HINTS)
+        assert job.company == "Microsoft"
+        assert job.url == "https://apply.careers.microsoft.com/careers/job/1970393556944735"
+        assert job.external_id == "200045438"
+        assert job.posted_at == datetime.fromtimestamp(1790129489, tz=UTC)  # postedTs, not creationTs
+        assert job.locations == ("Mountain View, CA, US",)
+        assert job.remote is False
         assert job.department == "Software Engineering"
-        assert job.employment_type == "Full-Time"
 
-    def test_role_hint_sent_as_q(self):
+    def test_sends_domain_query_and_sort(self):
         seen = {}
 
         def handler(request):
             seen.update(dict(request.url.params))
-            return httpx.Response(200, json=self._payload())
+            return httpx.Response(200, json=self._payload([], count=0))
 
-        provider = MicrosoftProvider(client=client_with(handler))
-        provider.fetch({}, FetchHints(role_query="data scientist"))
-        assert seen["q"] == "data scientist"
-        assert seen["o"] == "Recent"
+        EightfoldProvider(client=client_with(handler)).fetch(self.CONFIG, FetchHints(role_query="software engineer"))
+        assert request_path(seen) == {"domain": "microsoft.com", "query": "software engineer", "sort_by": "timestamp"}
 
-    def test_missing_envelope_raises(self):
-        provider = MicrosoftProvider(client=client_with(lambda r: httpx.Response(200, json={"jobs": []})))
-        with pytest.raises(ProviderError, match="operationResult"):
-            provider.fetch({}, HINTS)
+    def test_pages_until_empty(self):
+        starts = []
 
-    def test_string_location_is_tolerated(self):
-        payload = self._payload()
-        payload["operationResult"]["result"]["jobs"][0]["properties"]["locations"] = "Dublin, Ireland"
-        payload["operationResult"]["result"]["jobs"][0]["properties"].pop("primaryLocation")
+        def handler(request):
+            start = int(request.url.params["start"])
+            starts.append(start)
+            batch = [dict(self.LIVE_POSITION, id=start + i) for i in range(10)] if start < 20 else []
+            return httpx.Response(200, json=self._payload(batch))
 
-        provider = MicrosoftProvider(client=client_with(lambda r: httpx.Response(200, json=payload)))
-        jobs = provider.fetch({}, HINTS)
-        assert jobs[0].locations == ("Dublin, Ireland",)
+        jobs = EightfoldProvider(client=client_with(handler)).fetch(self.CONFIG, FetchHints(max_results=1000))
+        assert starts == [0, 10, 20]
+        assert len(jobs) == 20
+
+    def test_stops_when_a_page_predates_the_window(self):
+        starts = []
+
+        def handler(request):
+            starts.append(int(request.url.params["start"]))
+            return httpx.Response(200, json=self._payload([dict(self.LIVE_POSITION, postedTs=1_000_000_000)] * 10))
+
+        since = datetime(2026, 9, 1, tzinfo=UTC)
+        EightfoldProvider(client=client_with(handler)).fetch(self.CONFIG, FetchHints(since=since))
+        assert starts == [0]
+
+    def test_legacy_endpoint_error_is_explicit(self):
+        """What the retired /api/apply/v2 path returns - must not read as 'no jobs'."""
+        provider = EightfoldProvider(client=client_with(
+            lambda r: httpx.Response(200, json={"message": "Not authorized for PCSX"})))
+        with pytest.raises(ProviderError, match="Not authorized for PCSX"):
+            provider.fetch(self.CONFIG, HINTS)
+
+    def test_requires_host_and_domain(self):
+        with pytest.raises(ProviderError):
+            EightfoldProvider(client=client_with(lambda r: httpx.Response(200))).fetch({"host": "x"}, HINTS)
+
+
+def request_path(params):
+    return {k: params[k] for k in ("domain", "query", "sort_by")}
+
+
+class TestOracleHcm:
+    """recruitingCEJobRequisitions - shape from Oracle's API, not yet seen live."""
+
+    CONFIG = {"host": "jpmc.fa.oraclecloud.com", "site": "CX_1001", "company_name": "JPMorgan Chase"}
+
+    def _payload(self, reqs, total=None):
+        item = {"requisitionList": reqs}
+        if total is not None:
+            item["TotalJobsCount"] = total
+        return {"items": [item], "count": 1, "hasMore": False}
+
+    def _req(self, i=1, **kw):
+        return {"Id": str(210000000 + i), "Title": "Software Engineer III", "PostedDate": "2026-09-22",
+                "PrimaryLocation": "Bengaluru, Karnataka, India",
+                "secondaryLocations": [{"Name": "Mumbai, Maharashtra, India"}], **kw}
+
+    def test_parses_requisition(self):
+        provider = OracleHcmProvider(client=client_with(lambda r: httpx.Response(200, json=self._payload([self._req()], 1))))
+        [job] = provider.fetch(self.CONFIG, HINTS)
+        assert job.title == "Software Engineer III"
+        assert job.url == "https://jpmc.fa.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1001/job/210000001"
+        assert job.precision == Precision.DATE_ONLY
+        assert job.posted_at == datetime(2026, 9, 22, tzinfo=UTC)
+        assert job.locations == ("Bengaluru, Karnataka, India", "Mumbai, Maharashtra, India")
+
+    def test_finder_carries_site_sort_and_keyword(self):
+        seen = {}
+
+        def handler(request):
+            seen["finder"] = request.url.params["finder"]
+            return httpx.Response(200, json=self._payload([], 0))
+
+        OracleHcmProvider(client=client_with(handler)).fetch(self.CONFIG, FetchHints(role_query="software engineer"))
+        assert seen["finder"].startswith("findReqs;siteNumber=CX_1001,")
+        assert "sortBy=POSTING_DATES_DESC" in seen["finder"]
+        assert 'keyword="software engineer"' in seen["finder"]
+
+    def test_empty_items_is_zero_jobs(self):
+        provider = OracleHcmProvider(client=client_with(lambda r: httpx.Response(200, json={"items": []})))
+        assert provider.fetch(self.CONFIG, HINTS) == []
+
+    def test_unexpected_shape_raises(self):
+        provider = OracleHcmProvider(client=client_with(lambda r: httpx.Response(200, json={"foo": 1})))
+        with pytest.raises(ProviderError, match="no 'items'"):
+            provider.fetch(self.CONFIG, HINTS)
 
 
 class TestGreenhouseDates:

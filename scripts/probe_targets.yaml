@@ -1,39 +1,28 @@
 # Diagnostic targets for scripts/probe.py - read by the "Probe" workflow step.
 # Delete this file once the findings are applied; the step is skipped without it.
 
-# Does Greenhouse expose a real publish date? (updated_at is bulk-refreshed.)
-- {name: greenhouse fields, url: "https://boards-api.greenhouse.io/v1/boards/rubrik/jobs", limit: 900}
+# JPMorgan: does the Oracle HCM provider's request return requisitions?
+- {name: jpmc oracle shape, kind: shape, depth: 4, url: "https://jpmc.fa.oraclecloud.com/hcmRestApi/resources/latest/recruitingCEJobRequisitions?onlyData=true&expand=requisitionList.secondaryLocations&finder=findReqs%3BsiteNumber%3DCX_1001%2CfacetsList%3DLOCATIONS%3BWORK_LOCATIONS%3BWORKPLACE_TYPES%3BTITLES%3BCATEGORIES%3BORGANIZATIONS%3BPOSTING_DATES%3BFLEX_FIELDS%2Climit%3D25%2Coffset%3D0%2CsortBy%3DPOSTING_DATES_DESC%2Ckeyword%3D%22software+engineer%22"}
+- {name: jpmc oracle raw, url: "https://jpmc.fa.oraclecloud.com/hcmRestApi/resources/latest/recruitingCEJobRequisitions?onlyData=true&expand=requisitionList.secondaryLocations&finder=findReqs%3BsiteNumber%3DCX_1001%2CfacetsList%3DLOCATIONS%3BWORK_LOCATIONS%3BWORKPLACE_TYPES%3BTITLES%3BCATEGORIES%3BORGANIZATIONS%3BPOSTING_DATES%3BFLEX_FIELDS%2Climit%3D25%2Coffset%3D0%2CsortBy%3DPOSTING_DATES_DESC%2Ckeyword%3D%22software+engineer%22", limit: 1200}
 
-# Where did Microsoft's search API go?
-- {name: ms old api, url: "https://gcsservices.careers.microsoft.com/search/api/v1/search?q=software&l=en_us&pg=1&pgSz=2&o=Recent&flt=true", limit: 400}
-- {name: ms careers, kind: fingerprint, url: "https://jobs.careers.microsoft.com/global/en/search"}
-- {name: ms careers2, kind: fingerprint, url: "https://careers.microsoft.com/"}
-- {name: ms eightfold v2, url: "https://apply.careers.microsoft.com/api/apply/v2/jobs?domain=microsoft.com&start=0&num=2&sort_by=timestamp", limit: 1500}
-- {name: ms eightfold pcsx, url: "https://apply.careers.microsoft.com/api/pcsx/search?domain=microsoft.com&query=software%20engineer&location=&start=0&sort_by=timestamp", limit: 1500}
+# Eightfold pagination: is there a total count, and how big is a page?
+- {name: ms pcsx shape, kind: shape, depth: 2, url: "https://apply.careers.microsoft.com/api/pcsx/search?domain=microsoft.com&query=software%20engineer&location=&start=0&sort_by=timestamp"}
 
-# Qualcomm (Eightfold?)
-- {name: qualcomm v2, url: "https://careers.qualcomm.com/api/apply/v2/jobs?domain=qualcomm.com&start=0&num=2&sort_by=timestamp", limit: 1200}
-- {name: qualcomm pcsx, url: "https://careers.qualcomm.com/api/pcsx/search?domain=qualcomm.com&query=software&start=0&sort_by=timestamp", limit: 1200}
-
-# Which ATS does each unresolved company's careers page use?
-- {name: Walmart, kind: fingerprint, url: "https://careers.walmart.com/"}
-- {name: Intuit, kind: fingerprint, url: "https://jobs.intuit.com/"}
-- {name: Apple, kind: fingerprint, url: "https://jobs.apple.com/en-us/search"}
-- {name: Indeed, kind: fingerprint, url: "https://www.indeed.jobs/"}
-- {name: MathWorks, kind: fingerprint, url: "https://www.mathworks.com/company/jobs/opportunities.html"}
-- {name: Nutanix, kind: fingerprint, url: "https://www.nutanix.com/company/careers"}
-- {name: Nutanix2, kind: fingerprint, url: "https://careers.nutanix.com/"}
+# JavaScript-app careers pages: which API URLs does the page source mention?
+- {name: Walmart, kind: fingerprint, url: "https://careers.walmart.com/us/en/home"}
+- {name: Walmart results, kind: fingerprint, url: "https://careers.walmart.com/us/en/results?q=software%20engineer"}
+- {name: Intuit, kind: fingerprint, url: "https://jobs.intuit.com/search-jobs/software%20engineer"}
 - {name: PhonePe, kind: fingerprint, url: "https://www.phonepe.com/careers/job-openings/"}
-- {name: Arcesium, kind: fingerprint, url: "https://www.arcesium.com/careers"}
-- {name: D. E. Shaw, kind: fingerprint, url: "https://www.deshaw.com/careers"}
-- {name: Rippling, kind: fingerprint, url: "https://www.rippling.com/careers"}
-- {name: Rippling ats, url: "https://ats.rippling.com/rippling/jobs", limit: 600}
-- {name: Zepto, kind: fingerprint, url: "https://www.zeptonow.com/careers"}
 - {name: ShareChat, kind: fingerprint, url: "https://sharechat.com/careers"}
-- {name: DP World, kind: fingerprint, url: "https://careers.dpworld.com/"}
-- {name: Qualcomm, kind: fingerprint, url: "https://careers.qualcomm.com/careers"}
-- {name: Postman, kind: fingerprint, url: "https://www.postman.com/company/careers/"}
-- {name: Kotak, kind: fingerprint, url: "https://careers.kotak.com/"}
-- {name: JPMorgan, kind: fingerprint, url: "https://careers.jpmorgan.com/"}
-- {name: Zomato, kind: fingerprint, url: "https://www.zomato.com/careers"}
-- {name: Zomato/Eternal, kind: fingerprint, url: "https://www.eternal.com/careers/"}
+- {name: Postman, kind: fingerprint, url: "https://www.postman.com/company/careers/open-positions/"}
+- {name: D. E. Shaw, kind: fingerprint, url: "https://www.deshaw.com/careers/choose-your-path"}
+- {name: Rippling open roles, kind: fingerprint, url: "https://www.rippling.com/careers/open-roles"}
+- {name: Eternal (Zomato), kind: fingerprint, url: "https://www.eternal.com/careers/"}
+- {name: Apple search page, kind: fingerprint, url: "https://jobs.apple.com/en-in/search?search=software%20engineer"}
+- {name: Apple role search api, method: POST, url: "https://jobs.apple.com/api/role/search", json: {query: "software engineer", filters: {}, page: 1, locale: en-us, sort: newest}, limit: 600}
+
+# Companies whose first guess didn't resolve.
+- {name: DP World, kind: fingerprint, url: "https://www.dpworld.com/careers"}
+- {name: Kotak, kind: fingerprint, url: "https://www.kotak.com/en/careers.html"}
+- {name: Nutanix jobvite, url: "https://jobs.jobvite.com/nutanix/jobs", limit: 500}
+- {name: Zepto, kind: fingerprint, url: "https://www.zepto.com/careers"}

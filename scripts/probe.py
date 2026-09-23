@@ -9,7 +9,11 @@ Two kinds of target:
   raw          status, final URL, content type, and the start of the body
   fingerprint  which ATS vendors a careers page references (greenhouse,
                lever, workday, eightfold, successfactors, ...), with the
-               matching URL fragments - usually enough to configure a board
+               matching URL fragments - usually enough to configure a board.
+               When there are none (a JavaScript app), the API-looking URLs
+               in the page source instead.
+  shape        a JSON response's structure: keys, types, list lengths -
+               for finding pagination and total-count fields
 """
 
 from __future__ import annotations
@@ -49,6 +53,42 @@ ATS_PATTERNS = {
 }
 
 
+#: URLs in page source that look like data endpoints rather than assets.
+API_URL = re.compile(
+    r"(?:https?:)?//[\w.-]+(?:/[\w.~%-]*)*/(?:api|graphql|search|jobs?|careers?|openings|positions)"
+    r"[\w./~%?=&-]*"
+    r'|"/api/[\w./~%?=&-]+"',
+    re.IGNORECASE,
+)
+_ASSET = re.compile(r"\.(?:js|css|png|jpe?g|svg|gif|webp|woff2?|ico|mp4)(?:\?|$)", re.IGNORECASE)
+
+
+def api_urls(text: str, limit: int = 12) -> list[str]:
+    seen: list[str] = []
+    for m in API_URL.finditer(text):
+        url = m.group(0).strip('"')
+        if _ASSET.search(url) or url in seen:
+            continue
+        seen.append(url)
+        if len(seen) >= limit:
+            break
+    return seen
+
+
+def shape(value, depth: int = 0, max_depth: int = 3) -> str:
+    """One-line structural summary of parsed JSON."""
+    if depth >= max_depth:
+        return type(value).__name__
+    if isinstance(value, dict):
+        inner = ", ".join(f"{k}: {shape(v, depth + 1, max_depth)}" for k, v in list(value.items())[:25])
+        return "{" + inner + "}"
+    if isinstance(value, list):
+        return f"list[{len(value)}]" + (f" of {shape(value[0], depth + 1, max_depth)}" if value else "")
+    if isinstance(value, str):
+        return f"str({value[:40]!r})"
+    return repr(value)
+
+
 def squash(text: str, limit: int) -> str:
     return re.sub(r"\s+", " ", text)[:limit]
 
@@ -79,6 +119,18 @@ def probe_fingerprint(client: httpx.Client, target: dict) -> None:
             print(f"  {vendor}: {', '.join(hits[:6])}")
     if not found:
         print(f"  no ATS markers; title={squash(''.join(re.findall(r'<title>(.*?)</title>', r.text, re.S)[:1]), 120)!r}")
+        for url in api_urls(r.text):
+            print(f"  api? {url}")
+
+
+def probe_shape(client: httpx.Client, target: dict) -> None:
+    method = target.get("method", "GET").upper()
+    try:
+        r = client.request(method, target["url"], json=target.get("json"))
+        print(f"  {r.status_code} {r.headers.get('content-type', '?')}")
+        print(f"  shape: {shape(r.json(), max_depth=int(target.get('depth', 3)))}")
+    except (httpx.HTTPError, ValueError) as exc:
+        print(f"  ERROR {exc!r}; body: {squash(getattr(r, 'text', ''), 300) if 'r' in dir() else ''}")
 
 
 def main(path: str) -> int:
@@ -88,7 +140,7 @@ def main(path: str) -> int:
         for target in targets:
             kind = target.get("kind", "raw")
             print(f"=== [{kind}] {target.get('name', '')} {target['url']}")
-            (probe_fingerprint if kind == "fingerprint" else probe_raw)(client, target)
+            {"fingerprint": probe_fingerprint, "shape": probe_shape}.get(kind, probe_raw)(client, target)
     return 0
 
 

@@ -1,6 +1,6 @@
 """A local stand-in for real job boards, for running FaangScout offline.
 
-Serves Greenhouse-, Lever-, Ashby-, Amazon-, and Microsoft-shaped JSON on 127.0.0.1 so the full
+Serves Greenhouse-, Lever-, Ashby-, Amazon-, and Eightfold-shaped JSON on 127.0.0.1 so the full
 pipeline (resolve -> fetch -> filter -> report) can be exercised without
 reaching the real boards - useful in a sandbox with no egress, on a plane, or
 in CI. Postings are generated relative to "now" so the time-window filter has
@@ -112,30 +112,25 @@ def _amazon_payload() -> dict:
     }
 
 
-def _microsoft_payload() -> dict:
+def _eightfold_payload() -> dict:
     return {
-        "operationResult": {
-            "result": {
-                "totalJobs": len(_POSTINGS),
-                "jobs": [
-                    {
-                        "jobId": str(500 + i),
-                        "title": title,
-                        "postingDate": _iso(hours),
-                        "properties": {
-                            "primaryLocation": location,
-                            "locations": [location],
-                            "workSiteFlexibility": "Up to 100% work from home"
-                            if "remote" in location.lower()
-                            else "Up to 50% work from home",
-                            "profession": dept,
-                            "employmentType": "Full-Time",
-                        },
-                    }
-                    for i, (title, hours, location, dept) in enumerate(_POSTINGS)
-                ],
-            }
-        }
+        "status": 200,
+        "data": {
+            "count": len(_POSTINGS),
+            "positions": [
+                {
+                    "id": 500 + i,
+                    "displayJobId": str(9000 + i),
+                    "name": title,
+                    "locations": [location],
+                    "postedTs": int((NOW - timedelta(hours=hours)).timestamp()),
+                    "department": dept,
+                    "workLocationOption": "remote" if "remote" in location.lower() else "onsite",
+                    "positionUrl": f"/careers/job/{500 + i}",
+                }
+                for i, (title, hours, location, dept) in enumerate(_POSTINGS)
+            ],
+        },
     }
 
 
@@ -157,9 +152,9 @@ class Handler(BaseHTTPRequestHandler):
         # Amazon: /en/search.json
         elif parts == ["en", "search.json"]:
             payload = _amazon_payload()
-        # Microsoft: /search/api/v1/search
-        elif parts == ["search", "api", "v1", "search"]:
-            payload = _microsoft_payload()
+        # Eightfold (Microsoft, Qualcomm): /api/pcsx/search - one page only.
+        elif parts == ["api", "pcsx", "search"]:
+            payload = _eightfold_payload() if "start=0" in self.path else {"status": 200, "data": {"positions": []}}
 
         if payload is None:
             self.send_error(404, "no fixture for this path")
