@@ -161,9 +161,15 @@ def generic_sde(title: str) -> int | None:
     return numbers.pop() if len(numbers) == 1 else None
 
 
-def assess(job: Job) -> ExperienceReq:
+def assess(job: Job, *, use_ladders: bool = True) -> ExperienceReq:
+    """What ``job`` asks for: stated years, else the company ladder, else the title.
+
+    ``use_ladders=False`` skips the company ladders - they map engineering
+    titles, so "Senior" at a company whose Senior is SDE-2 says nothing about a
+    "Senior Recruiter" there.
+    """
     levels = title_levels(job.title)
-    ladder = company_level(job.company, job.title)
+    ladder = company_level(job.company, job.title) if use_ladders else None
     sde = ladder.sde if ladder else generic_sde(job.title)
     level = ladder.label if ladder else ""
     found = mentions(job.description or "")

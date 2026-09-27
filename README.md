@@ -185,6 +185,51 @@ into `known_boards.yaml` so later runs skip probing it.
 The seen-jobs cache is branch-scoped: jobs reported by on-demand runs on a
 feature branch may be emailed once more by the first scheduled run on `main`.
 
+## Profiles: a second search emailed to someone else
+
+`profiles/recruiter.yaml` is a second search - **recruiter** roles (also
+Talent Acquisition, Sourcer, Recruiting ... titles) in India that fit **5
+years** - over the same companies. `.github/workflows/scout-recruiter.yml`
+runs it daily at 2:00 PM IST and emails the new openings straight to its
+recipient over SMTP. It is independent of the main search: its own workflow,
+concurrency group and seen-jobs cache (`.faangscout-recruiter/`), and no
+issue comments. `scout.yml` and `scout.yaml` are unchanged by it.
+
+A profile `extends:` another config and overrides only what differs, so the
+company list lives in `scout.yaml` alone:
+
+```yaml
+extends: ../scout.yaml
+role: recruiter
+experience: {years: 5, sde: null, ladders: false}
+```
+
+`sde: null, ladders: false` turn off the engineering-level rules (company
+ladders map engineering titles - "Lead" at Salesforce is LMTS, 8+ yrs, which
+says nothing about a "Lead Recruiter"); stated years decide, then generic title
+words ("Senior"/"Lead" 5+, "Associate" 0-2).
+
+**Set up** (Settings → Secrets and variables → Actions → New repository secret):
+
+| Secret | Value |
+|---|---|
+| `SMTP_USERNAME` | the Gmail address that sends the email |
+| `SMTP_PASSWORD` | that account's **app password** (Google Account → Security → 2-Step Verification → App passwords; needs 2-Step Verification on) |
+| `RECRUITER_EMAIL_TO` | who receives it (comma-separate several) |
+
+The recipient is a secret, not in the config, because the repo is public.
+Send one now with **Actions → FaangScout (recruiter) → Run workflow**
+(optionally with a wider `hours`). A day with nothing new sends no email.
+Other SMTP servers work too: set `SMTP_HOST` / `SMTP_PORT` (STARTTLS).
+
+Known limit: a few boards search by keyword only (Eightfold, Oracle), so a
+posting titled only "Talent Acquisition Partner" can be missed there;
+full-list boards (Greenhouse, Lever, Ashby, Workday's second pass, ...) see
+every title.
+
+For a local run: `SMTP_USERNAME=... SMTP_PASSWORD=... faangscout --config
+profiles/recruiter.yaml --email-to someone@example.com`.
+
 ## Checking whether a career portal is reachable
 
 A board that returns zero jobs and a board that is blocked, moved, or

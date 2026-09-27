@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import re
 from datetime import UTC, datetime
 
 from .models import Job, Precision, Rejection, ScoutReport
+from .normalize import ROLE_SYNONYMS
 
 
 def format_age(job: Job, *, now: datetime | None = None) -> str:
@@ -42,9 +44,23 @@ def _plural(n: int, word: str) -> str:
     return f"{n} {word}{'' if n == 1 else 's'}"
 
 
+#: Job families that aren't software roles; the summary names them instead.
+_NON_SOFTWARE_FAMILIES = ("recruiter", "product manager", "designer", "data analyst")
+
+
+def role_noun(role: str | None) -> str:
+    """How the summary names the roles searched for: the family for a
+    non-software search ("recruiter"), else "software" as always."""
+    role = (role or "").strip().lower()
+    for family in _NON_SOFTWARE_FAMILIES:
+        if any(re.search(rf"\b{re.escape(v)}\b", role) for v in (family, *ROLE_SYNONYMS[family])):
+            return family
+    return "software"
+
+
 def company_summary(
     report: ScoutReport, *, hours: float | None = None, location: str | None = None,
-    experience: float | None = None,
+    experience: float | None = None, role: str | None = None,
 ) -> list[tuple[str, str]]:
     """``(company, why)`` for every company asked for that has no row in the report.
 
@@ -62,6 +78,7 @@ def company_summary(
     for s in report.sources:
         sources.setdefault(s.company, []).append(s)
     window = f"the last {hours:g}h" if hours else "this window"
+    kind = role_noun(role)
 
     out: list[tuple[str, str]] = []
     for company in report.companies:
@@ -86,9 +103,9 @@ def company_summary(
             if undated:
                 why += " (this board shows no dates; postings count as new the day they first appear)"
         elif reached("location") == 0:
-            why = f"{_plural(reached('role'), 'new posting')}, none are software roles"
+            why = f"{_plural(reached('role'), 'new posting')}, none are {kind} roles"
         elif reached("experience") == 0:
-            why = f"{_plural(reached('location'), 'new software role')}, none in {location or 'the location asked for'}"
+            why = f"{_plural(reached('location'), f'new {kind} role')}, none in {location or 'the location asked for'}"
         elif reached("already_sent") == 0:
             labels = sorted(
                 {r.job.experience for r in by_stage["experience"] if r.job.experience and r.job.experience.min_years is not None},
@@ -99,7 +116,7 @@ def company_summary(
             verdict = "none fits" if n > 1 else "doesn't fit"
             wanted = f"{experience:g} yrs" if experience is not None else "the experience asked for"
             where = f" {location}" if location else ""
-            why = f"{_plural(n, f'new{where} software role')}, {verdict} {wanted}"
+            why = f"{_plural(n, f'new{where} {kind} role')}, {verdict} {wanted}"
             if needs:
                 why += f" (needs {needs})"
         else:
@@ -172,7 +189,7 @@ def render_markdown(
         lines += [f"- **{_cell(e.company)}** (`{e.source}`): {_cell(e.error or '')}" for e in errors]
         lines += ["", "</details>"]
 
-    summary = company_summary(report, hours=hours, location=location, experience=experience)
+    summary = company_summary(report, hours=hours, location=location, experience=experience, role=role)
     if summary:
         lines += ["", f"**No match today ({len(summary)}):**", ""]
         lines += [f"- **{_cell(name)}**: {_cell(why)}" for name, why in summary]
