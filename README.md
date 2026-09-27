@@ -231,6 +231,13 @@ the email names them under "No match today":
 - Flipkart, Dream Sports, BrowserStack, LinkedIn: no readable job list
 - Myntra: site under maintenance
 
+Added 2026-09-27 from your list (16 more):
+
+| Status | Companies |
+|---|---|
+| Covered | Couchbase (Greenhouse), PayU (SuccessFactors), Slice and Acko (Kula), CoinSwitch (Recruiterflow), Elevate K-12 (Workable) |
+| Not covered | Wayfair (PerimeterX bot check); Navi, CoinDCX, INDMoney (Cloudflare); Ola, Yubi/CredAvenue (blocked); WinZO (careers page gone); Airtel XLabs (site doesn't respond); Upstox, BetterPlace (no job list on the careers page) |
+
 ## Supported job boards
 
 | Provider | Used by (in the bundled registry) | Date quality |
@@ -252,6 +259,10 @@ the email names them under "No match today":
 | `goldman_sachs` | Goldman Sachs (higher.gs.com GraphQL search) | none - first seen |
 | `google_careers` | Google (server-rendered search results) | none - first seen |
 | `mynexthire` | Swiggy | exact |
+| `kula` | Slice, Acko | exact |
+| `recruiterflow` | CoinSwitch | last opened |
+| `successfactors` | PayU (SAP SuccessFactors career sites) | day only |
+| `workable` | Elevate K-12 | exact |
 
 Every one of these was confirmed against the live service from a GitHub
 Actions runner (September 2026) - including that the job links in the report
