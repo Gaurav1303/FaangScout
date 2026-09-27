@@ -590,7 +590,10 @@ companies:
 
   - name: Couchbase
     aliases: [couchbase]
-    sources: []
+    # Confirmed by live discovery (GitHub Actions run 36321077924).
+    sources:
+      - provider: greenhouse
+        config: {board: couchbaseinc}
 
   - name: CoinDCX
     aliases: [coindcx, coin dcx]

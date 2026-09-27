@@ -107,12 +107,18 @@ candidates:
       - {tenant: booking, sites: [Booking, External]}
   # Added 2026-09-27 (the user's list).
   Wayfair:
+    # smartrecruiters:wayfair answers, but it's one stale posting, not Wayfair's job list.
+    exclude: [smartrecruiters:wayfair]
     slugs: [wayfair, wayfairllc]
     workday:
       - {tenant: wayfair, sites: [Wayfair_Careers, External, wayfair]}
   Navi:
+    # ashby:navi answers, but it's a different company (US startup), not Navi Technologies.
+    exclude: [ashby:navi]
     slugs: [navi, navitechnologies, navi-technologies, navifinserv]
   Upstox:
+    # smartrecruiters:upstox answers, but it's a junk posting ('demat account opening').
+    exclude: [smartrecruiters:upstox]
     slugs: [upstox, rksv, rksvsecurities]
   Couchbase:
     slugs: [couchbase, couchbaseinc]
@@ -125,6 +131,8 @@ candidates:
   Ola:
     slugs: [olacabs, ola-cabs, anitechnologies, olaelectric]
   Slice:
+    # greenhouse:slice answers, but it's Slice the US pizza app, not slice the Indian fintech.
+    exclude: [greenhouse:slice]
     slugs: [sliceit, slicefintech, slice-it, garagepreneurs]
   Acko:
     slugs: [acko, ackotech, ackogi]
