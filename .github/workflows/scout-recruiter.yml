@@ -42,7 +42,7 @@ jobs:
     timeout-minutes: 20
     env:
       PROFILE: profiles/recruiter.yaml
-      HOURS: ${{ inputs.hours }}
+      HOURS: ${{ inputs.hours || (github.event_name == 'push' && '720' || '') }}  # TEMP: 30-day test run
       RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
       # Only scheduled and manual runs send the email and record what was sent.
       DELIVER: ${{ github.event_name != 'push' }}
