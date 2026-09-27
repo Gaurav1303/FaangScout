@@ -570,3 +570,72 @@ companies:
     aliases: [booking.com, booking, booking holdings]
     sources: []
     note: "careers site blocks scripted access (403)"  # checked 2026-09-23
+
+# --------------------------------------------------------------------------- #
+# Added 2026-09-27 from the user's list. Boards not confirmed yet - `--discover`
+# tries the guesses in discovery_candidates.yaml.
+# --------------------------------------------------------------------------- #
+
+  - name: Wayfair
+    aliases: [wayfair]
+    sources: []
+
+  - name: Navi
+    aliases: [navi, navi technologies]
+    sources: []
+
+  - name: Upstox
+    aliases: [upstox, rksv]
+    sources: []
+
+  - name: Couchbase
+    aliases: [couchbase]
+    sources: []
+
+  - name: CoinDCX
+    aliases: [coindcx, coin dcx]
+    sources: []
+
+  - name: WinZO
+    aliases: [winzo, winzo games]
+    sources: []
+
+  - name: Ola
+    aliases: [ola, ola cabs, olacabs, ani technologies]
+    sources: []
+
+  - name: Slice
+    aliases: [slice, slice fintech, sliceit]
+    sources: []
+
+  - name: Acko
+    aliases: [acko, acko general insurance]
+    sources: []
+
+  - name: BetterPlace
+    aliases: [betterplace, better place]
+    sources: []
+
+  - name: INDMoney
+    aliases: [indmoney, ind money, indwealth]
+    sources: []
+
+  - name: PayU
+    aliases: [payu, payu india, pay u]
+    sources: []
+
+  - name: Yubi
+    aliases: [yubi, credavenue, cred avenue, go yubi]
+    sources: []
+
+  - name: Elevate K-12
+    aliases: [elevate k-12, elevate k12, elevatek12]
+    sources: []
+
+  - name: Airtel
+    aliases: [airtel, airtel xlabs, airtel x labs, bharti airtel]
+    sources: []
+
+  - name: CoinSwitch
+    aliases: [coinswitch, coin switch, coinswitch kuber]
+    sources: []

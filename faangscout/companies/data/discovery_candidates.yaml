@@ -105,3 +105,40 @@ candidates:
     slugs: [bookingcom, booking]
     workday:
       - {tenant: booking, sites: [Booking, External]}
+  # Added 2026-09-27 (the user's list).
+  Wayfair:
+    slugs: [wayfair, wayfairllc]
+    workday:
+      - {tenant: wayfair, sites: [Wayfair_Careers, External, wayfair]}
+  Navi:
+    slugs: [navi, navitechnologies, navi-technologies, navifinserv]
+  Upstox:
+    slugs: [upstox, rksv, rksvsecurities]
+  Couchbase:
+    slugs: [couchbase, couchbaseinc]
+    workday:
+      - {tenant: couchbase, sites: [Couchbase, External, couchbase_careers]}
+  CoinDCX:
+    slugs: [coindcx, coin-dcx, neblio]
+  WinZO:
+    slugs: [winzo, winzogames, winzo-games]
+  Ola:
+    slugs: [olacabs, ola-cabs, anitechnologies, olaelectric]
+  Slice:
+    slugs: [sliceit, slicefintech, slice-it, garagepreneurs]
+  Acko:
+    slugs: [acko, ackotech, ackogi]
+  BetterPlace:
+    slugs: [betterplace, betterplacesafety, betterplace-safety-solutions]
+  INDMoney:
+    slugs: [indmoney, indwealth, finzoom]
+  PayU:
+    slugs: [payu, payuindia, payu-india, payupayments]
+  Yubi:
+    slugs: [yubi, go-yubi, goyubi, credavenue]
+  Elevate K-12:
+    slugs: [elevatek12, elevate-k12, elevatek-12]
+  Airtel:
+    slugs: [airtel, airtelxlabs, bhartiairtel]
+  CoinSwitch:
+    slugs: [coinswitch, coinswitchkuber, bitcipher]
