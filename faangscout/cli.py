@@ -13,6 +13,7 @@ from .check import check_sources
 from .companies.registry import load_registry
 from .discover import discover, to_registry_yaml
 from .first_seen import FirstSeenStore
+from .notify.email import send_markdown_email
 from .models import Rejection, ScoredJob, SearchCriteria
 from .report import format_age, render_markdown
 from .scout import scout
@@ -111,6 +112,13 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--markdown", action="store_true", help="Print results as a Markdown table")
     parser.add_argument(
+        "--email-to",
+        metavar="ADDRESS",
+        help="Email the Markdown report to this address over SMTP (settings from SMTP_HOST, "
+        "SMTP_PORT, SMTP_USERNAME, SMTP_PASSWORD). Only sent when there are openings",
+    )
+    parser.add_argument("--email-subject", metavar="TEXT", help="Subject for --email-to (a default is built)")
+    parser.add_argument(
         "--comment-out",
         metavar="PATH",
         help="Also write a row-capped Markdown version (see --max-rows) sized for a GitHub issue comment",
@@ -146,7 +154,7 @@ def main(argv: list[str] | None = None) -> int:
         limit=args.limit,
         semantic=True if args.semantic else None,
         location=args.location,
-        experience=args.experience,
+        experience=_experience_filter(args),
     )
     registry = load_registry(args.companies_file)
     first_seen = FirstSeenStore(args.first_seen_file) if args.first_seen_file else None
@@ -181,6 +189,17 @@ def main(argv: list[str] | None = None) -> int:
                             max_rows=args.max_rows, more_link=args.more_link)
         )
 
+    if args.email_to and report.jobs:
+        body = render_markdown(report, role=args.role, hours=args.hours, new_only=new_only,
+                               location=args.location, experience=args.experience,
+                               max_rows=args.max_rows, more_link=args.more_link)
+        count = len(report.jobs)
+        subject = args.email_subject or (
+            f"FaangScout: {count} new {args.role or 'matching'} opening{'' if count == 1 else 's'}"
+            + (f" (last {args.hours:g}h)" if args.hours else "")
+        )
+        send_markdown_email(args.email_to, subject, body)
+
     if args.markdown:
         print(render_markdown(report, role=args.role, hours=args.hours, new_only=new_only,
                               location=args.location, experience=args.experience,
@@ -198,11 +217,7 @@ def apply_config(args: argparse.Namespace) -> None:
     Boolean flags can't tell "not given" from "false", so for those the config
     can only switch a behaviour on, never off.
     """
-    config: dict = {}
-    if args.config:
-        config = yaml.safe_load(Path(args.config).read_text()) or {}
-        if not isinstance(config, dict):
-            raise ValueError(f"{args.config} must contain a YAML mapping")
+    config: dict = load_config(args.config) if args.config else {}
 
     if not args.companies:
         companies = config.get("companies") or []
@@ -220,9 +235,41 @@ def apply_config(args: argparse.Namespace) -> None:
     if args.experience is None and config.get("experience") is not None:
         exp = config["experience"]
         args.experience = float(exp["years"] if isinstance(exp, dict) else exp)
+        # Extra experience settings ({years: 5, sde: null, ladders: false}) are
+        # kept for the filter; a plain number keeps the defaults.
+        if isinstance(exp, dict):
+            args.experience_options = {k: v for k, v in exp.items() if k != "years"}
     for flag in ("include_undated", "semantic"):
         if config.get(flag):
             setattr(args, flag, True)
+
+
+def _experience_filter(args: argparse.Namespace):
+    """``--experience 3`` as the filter wants it: a number, or with options a mapping."""
+    options = getattr(args, "experience_options", None)
+    if args.experience is None or not options:
+        return args.experience
+    return {"years": args.experience, **options}
+
+
+def load_config(path: str | Path) -> dict:
+    """A config file, with ``extends: other.yaml`` resolved first.
+
+    A profile can extend another config (e.g. reuse ``scout.yaml``'s company
+    list) and override only what differs; its own keys win. The path is
+    relative to the extending file.
+    """
+    path = Path(path)
+    config = yaml.safe_load(path.read_text()) or {}
+    if not isinstance(config, dict):
+        raise ValueError(f"{path} must contain a YAML mapping")
+    base_ref = config.pop("extends", None)
+    if not base_ref:
+        return config
+    base_path = (path.parent / str(base_ref)).resolve()
+    if base_path == path.resolve():
+        raise ValueError(f"{path} extends itself")
+    return {**load_config(base_path), **config}
 
 
 def _dedupe(values) -> list[str]:

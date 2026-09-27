@@ -172,7 +172,7 @@ GitHub run it. `.github/workflows/scout.yml` does, on a GitHub-hosted runner:
 - Edit `scout.yaml` - your companies, role, and time window.
 - Make the repo private if you don't want your search visible: Actions logs and
   the results issue show which companies and role you're targeting.
-- The daily run (09:00 IST, `cron: "30 3 * * *"` in UTC) only fires from the
+- The daily run (2:00 PM IST, `cron: "30 8 * * *"` in UTC) only fires from the
   default branch, so it starts once the workflow is merged to `main`.
 - Run on demand: **Actions → FaangScout → Run workflow**, optionally
   overriding the role or hours, or picking `check` / `discover` mode.
@@ -184,6 +184,51 @@ into `known_boards.yaml` so later runs skip probing it.
 
 The seen-jobs cache is branch-scoped: jobs reported by on-demand runs on a
 feature branch may be emailed once more by the first scheduled run on `main`.
+
+## Profiles: a second search emailed to someone else
+
+`profiles/recruiter.yaml` is a second search - **recruiter** roles (also
+Talent Acquisition, Sourcer, Recruiting ... titles) in India that fit **5
+years** - over the same companies. `.github/workflows/scout-recruiter.yml`
+runs it daily at 2:00 PM IST and emails the new openings straight to its
+recipient over SMTP. It is independent of the main search: its own workflow,
+concurrency group and seen-jobs cache (`.faangscout-recruiter/`), and no
+issue comments. `scout.yml` and `scout.yaml` are unchanged by it.
+
+A profile `extends:` another config and overrides only what differs, so the
+company list lives in `scout.yaml` alone:
+
+```yaml
+extends: ../scout.yaml
+role: recruiter
+experience: {years: 5, sde: null, ladders: false}
+```
+
+`sde: null, ladders: false` turn off the engineering-level rules (company
+ladders map engineering titles - "Lead" at Salesforce is LMTS, 8+ yrs, which
+says nothing about a "Lead Recruiter"); stated years decide, then generic title
+words ("Senior"/"Lead" 5+, "Associate" 0-2).
+
+**Set up** (Settings → Secrets and variables → Actions → New repository secret):
+
+| Secret | Value |
+|---|---|
+| `SMTP_USERNAME` | the Gmail address that sends the email |
+| `SMTP_PASSWORD` | that account's **app password** (Google Account → Security → 2-Step Verification → App passwords; needs 2-Step Verification on) |
+| `RECRUITER_EMAIL_TO` | who receives it (comma-separate several) |
+
+The recipient is a secret, not in the config, because the repo is public.
+Send one now with **Actions → FaangScout (recruiter) → Run workflow**
+(optionally with a wider `hours`). A day with nothing new sends no email.
+Other SMTP servers work too: set `SMTP_HOST` / `SMTP_PORT` (STARTTLS).
+
+Known limit: a few boards search by keyword only (Eightfold, Oracle), so a
+posting titled only "Talent Acquisition Partner" can be missed there;
+full-list boards (Greenhouse, Lever, Ashby, Workday's second pass, ...) see
+every title.
+
+For a local run: `SMTP_USERNAME=... SMTP_PASSWORD=... faangscout --config
+profiles/recruiter.yaml --email-to someone@example.com`.
 
 ## Checking whether a career portal is reachable
 
@@ -212,6 +257,32 @@ output.
 Run this first whenever a company returns nothing and you expected results -
 it distinguishes "genuinely no new postings" from "this board token is stale."
 
+## Companies
+
+`scout.yaml` lists the companies searched. Besides the original 31, there
+are 28 more that pay roughly **35-40 LPA or more for ~3 years (SDE-2)** in
+India, according to levels.fyi and LeetCode Discuss offer threads (Sept
+2026). These are approximate and vary by team:
+
+| Band (~3 yrs, India) | Companies |
+|---|---|
+| ~35-45 LPA | Flipkart, Meesho, Goldman Sachs (Associate), ServiceNow (IC2), Visa, Palo Alto Networks, Zscaler, PayPal, Razorpay, CRED, Groww, Myntra, Dream Sports, Tekion, BrowserStack, Autodesk, Expedia, Twilio, Harness, Zeta |
+| ~50 LPA and up | Swiggy, Uber, Atlassian, Confluent, Databricks, LinkedIn, Booking.com, Google |
+
+Of these, 21 have working boards. The other 7 are listed with a reason, and
+the email names them under "No match today":
+- Uber: Cloudflare bot check
+- Booking.com: returns 403
+- Flipkart, Dream Sports, BrowserStack, LinkedIn: no readable job list
+- Myntra: site under maintenance
+
+Added 2026-09-27 from your list (16 more):
+
+| Status | Companies |
+|---|---|
+| Covered | Couchbase (Greenhouse), PayU (SuccessFactors), Slice and Acko (Kula), CoinSwitch (Recruiterflow), Elevate K-12 (Workable) |
+| Not covered | Wayfair (PerimeterX bot check); Navi, CoinDCX, INDMoney (Cloudflare); Ola, Yubi/CredAvenue (blocked); WinZO (careers page gone); Airtel XLabs (site doesn't respond); Upstox, BetterPlace (no job list on the careers page) |
+
 ## Supported job boards
 
 | Provider | Used by (in the bundled registry) | Date quality |
@@ -227,7 +298,16 @@ it distinguishes "genuinely no new postings" from "this board token is stale."
 | `sharechat` | ShareChat (its careers API) | exact |
 | `jobvite` | Nutanix | none - first seen |
 | `rippling_ats` | Rippling | none - first seen |
-| `talentbrew` | Intuit | none - first seen |
+| `talentbrew` | Intuit, Palo Alto Networks | none - first seen |
+| `smartrecruiters` | (fixed: listing `ref` is the posting's API URL) | exact |
+| `atlassian` | Atlassian (its careers listing endpoint) | last updated |
+| `goldman_sachs` | Goldman Sachs (higher.gs.com GraphQL search) | none - first seen |
+| `google_careers` | Google (server-rendered search results) | none - first seen |
+| `mynexthire` | Swiggy | exact |
+| `kula` | Slice, Acko | exact |
+| `recruiterflow` | CoinSwitch | last opened |
+| `successfactors` | PayU (SAP SuccessFactors career sites) | day only |
+| `workable` | Elevate K-12 | exact |
 
 Every one of these was confirmed against the live service from a GitHub
 Actions runner (September 2026) - including that the job links in the report

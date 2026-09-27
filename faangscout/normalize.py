@@ -39,6 +39,7 @@ ROLE_SYNONYMS: dict[str, tuple[str, ...]] = {
         "software developer",
         "software development engineer",
         "software eng",  # Apple: "Software Eng - Content Management Systems"
+        "software engineering",  # Goldman "...-Associate-Software Engineering", Salesforce "Software Engineering - SMTS"
         "sde",
         "swe",
         "programmer",
@@ -68,6 +69,16 @@ ROLE_SYNONYMS: dict[str, tuple[str, ...]] = {
     "data analyst": ("data analyst", "business analyst", "business intelligence", "bi analyst"),
     "engineering manager": ("engineering manager", "em", "software engineering manager", "dev manager"),
     "solutions architect": ("solutions architect", "solution architect", "sales engineer", "solutions engineer"),
+    "recruiter": (
+        "recruiter",
+        "recruiting",
+        "recruitment",
+        "talent acquisition",
+        "talent partner",
+        "sourcer",
+        "sourcing specialist",
+        "hiring specialist",
+    ),
 }
 
 #: Groups that narrow a role rather than name it. When a query hits one of

@@ -1,0 +1,109 @@
+# A second FaangScout search, emailed straight to its recipient: the profile in
+# profiles/recruiter.yaml (recruiter roles, same companies as scout.yaml).
+# Runs alongside scout.yml with its own cache, so neither affects the other.
+#
+#   - Daily at 14:00 IST: emails NEW openings to the RECRUITER_EMAIL_TO secret.
+#   - On demand: Actions tab -> FaangScout (recruiter) -> Run workflow.
+#   - On push to feature/firstDraft: a test run that shows results in the run
+#     summary but does NOT email or mark jobs as sent.
+#
+# Needs repository secrets (Settings -> Secrets and variables -> Actions):
+#   SMTP_USERNAME       the Gmail address that sends the email
+#   SMTP_PASSWORD       that account's app password (Google Account -> Security
+#                       -> 2-Step Verification -> App passwords)
+#   RECRUITER_EMAIL_TO  who receives it
+#
+# Note: `schedule` only fires from the default branch (main).
+
+name: FaangScout (recruiter)
+
+on:
+  workflow_dispatch:
+    inputs:
+      hours:
+        description: "Override the time window in hours (leave blank to use the profile)"
+        required: false
+  push:
+    branches: [feature/firstDraft]
+    paths: [profiles/recruiter.yaml, scout.yaml, .github/workflows/scout-recruiter.yml, "faangscout/**"]
+  schedule:
+    - cron: "30 8 * * *"   # 14:00 IST (08:30 UTC)
+
+permissions:
+  contents: read
+
+concurrency:
+  group: faangscout-recruiter
+  cancel-in-progress: false
+
+jobs:
+  scout:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PROFILE: profiles/recruiter.yaml
+      HOURS: ${{ inputs.hours }}
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      # Only scheduled and manual runs send the email and record what was sent.
+      DELIVER: ${{ github.event_name != 'push' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install
+        run: pip install -e .
+
+      - name: Discover boards
+        run: faangscout --config "$PROFILE" --discover --out discovered.yaml | tee discover.log
+
+      - name: Restore already-sent jobs
+        if: env.DELIVER == 'true'
+        uses: actions/cache/restore@v4
+        with:
+          path: .faangscout-recruiter
+          key: faangscout-recruiter-seen-${{ github.run_id }}
+          restore-keys: faangscout-recruiter-seen-
+
+      - name: Search and email
+        env:
+          SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          EMAIL_TO: ${{ secrets.RECRUITER_EMAIL_TO }}
+        run: |
+          args=(--config "$PROFILE" --companies-file discovered.yaml --json-out results.json
+                --markdown --more-link "$RUN_URL")
+          if [ "$DELIVER" = "true" ]; then
+            if [ -z "$EMAIL_TO" ]; then
+              echo "::error::Add the RECRUITER_EMAIL_TO repository secret (who gets this email)."
+              exit 1
+            fi
+            args+=(--seen-file .faangscout-recruiter/seen.json
+                   --first-seen-file .faangscout-recruiter/first_seen.json
+                   --email-to "$EMAIL_TO")
+          fi
+          if [ -n "$HOURS" ]; then args+=(--hours "$HOURS"); fi
+          faangscout "${args[@]}" > results.md
+          cat results.md
+          cat results.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Save already-sent jobs
+        if: env.DELIVER == 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: .faangscout-recruiter
+          key: faangscout-recruiter-seen-${{ github.run_id }}
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: faangscout-recruiter-${{ github.run_id }}
+          path: |
+            discovered.yaml
+            discover.log
+            results.md
+            results.json
+          if-no-files-found: ignore

@@ -12,7 +12,9 @@ Postings that state no requirement anywhere are kept by default and labelled
 Years stated in the posting always decide. When none are stated, a job also
 passes if its title sits at the wanted SDE level on the company's own ladder
 (``sde``, default 2): "Salesforce MTS" and "Walmart Software Engineer III"
-are SDE-2 whatever the generic reading of the words would say.
+are SDE-2 whatever the generic reading of the words would say. Non-engineering
+searches set ``sde: null, ladders: false`` - the ladders map engineering titles
+only - and fall back to stated years, then generic title words.
 
 Runs last and asks for full descriptions (``needs_description``), so the
 per-job detail requests some boards need happen only for jobs that already
@@ -31,12 +33,14 @@ from .base import Filter, register
 DEFAULT_SDE = 2
 
 
-def parse_config(value) -> tuple[float, bool, int | None]:
-    """``3`` or ``{years: 3, include_unknown: true, sde: 2}`` -> (years, include_unknown, sde)."""
+def parse_config(value) -> tuple[float, bool, int | None, bool]:
+    """``3`` or ``{years: 3, include_unknown: true, sde: 2, ladders: true}``
+    -> (years, include_unknown, sde, ladders). ``sde: null`` turns the level rule off."""
     if isinstance(value, dict):
         sde = value.get("sde", DEFAULT_SDE)
-        return float(value["years"]), bool(value.get("include_unknown", True)), None if sde is None else int(sde)
-    return float(value), True, DEFAULT_SDE
+        return (float(value["years"]), bool(value.get("include_unknown", True)),
+                None if sde is None else int(sde), bool(value.get("ladders", True)))
+    return float(value), True, DEFAULT_SDE, True
 
 
 @register("experience")
@@ -45,11 +49,11 @@ class ExperienceFilter(Filter):
     needs_description = True
 
     def apply(self, jobs: list[Job], criteria: SearchCriteria) -> tuple[list[Job], list[Rejection]]:
-        years, include_unknown, sde = parse_config(criteria.filters["experience"])
+        years, include_unknown, sde, ladders = parse_config(criteria.filters["experience"])
         kept: list[Job] = []
         rejected: list[Rejection] = []
         for job in jobs:
-            req = assess(job)
+            req = assess(job, use_ladders=ladders)
             job = replace(job, experience=req)
             verdict = req.admits(years)
             at_level = sde is not None and req.basis != "description" and req.sde == sde

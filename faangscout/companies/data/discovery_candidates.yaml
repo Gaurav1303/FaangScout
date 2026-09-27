@@ -5,6 +5,8 @@
 #            SmartRecruiters, in order. Slugs derived from the name and
 #            aliases are always tried too - list only the non-obvious ones
 #            (old brand names, legal entities).
+#   exclude: "provider:slug" pairs never to accept - a same-named but
+#            unrelated (or test) board, e.g. greenhouse:linkedin.
 #   workday: tenant/site pairs to try. Workday assigns each tenant a numbered
 #            host (wd1, wd5, ...) that can't be derived from the name; list
 #            the likely one under `hosts` and discovery falls back to the
@@ -36,3 +38,115 @@ candidates:
   Zomato:
     # Not 'eternal': that Lever board is an unrelated NYC/SF company.
     slugs: [zomatoltd]
+  # Added 2026-09-23 (the ~35-40 LPA list). Slugs from the name/aliases are
+  # tried automatically; these are the non-obvious ones.
+  Swiggy:
+    slugs: [bundltechnologies, swiggyinstamart]
+  Meesho:
+    slugs: [fashnear, meeshotech]
+  Goldman Sachs:
+    slugs: [goldmansachs]
+  ServiceNow:
+    slugs: [servicenow]
+  Visa:
+    slugs: [visa]
+  Palo Alto Networks:
+    slugs: [paloaltonetworks, paloaltonetworks2]
+    workday:
+      - {tenant: paloaltonetworks, sites: [PaloAltoNetworks, External, careers]}
+  PayPal:
+    workday:
+      - {tenant: paypal, hosts: [wd1], sites: [jobs, External, PayPal]}
+  Razorpay:
+    slugs: [razorpaysoftwareprivatelimited, razorpaysoftware]
+  CRED:
+    slugs: [credclub, cred-club, dreamplugtechnologies]
+  Groww:
+    slugs: [growwin, nextbillion, nextbilliontechnology]
+  Myntra:
+    slugs: [myntradesigns, myntrajobs]
+  Dream Sports:
+    slugs: [dreamsports, dreamsportsgroup, dream11]
+  Tekion:
+    slugs: [tekioncorp, tekion-corp]
+  BrowserStack:
+    slugs: [browserstack]
+  Autodesk:
+    workday:
+      - {tenant: autodesk, hosts: [wd1], sites: [Ext, External, Autodesk]}
+  Expedia:
+    workday:
+      - {tenant: expedia, hosts: [wd108, wd5, wd1], sites: [search, Expedia_Careers, External]}
+  Twilio:
+    slugs: [twilio]
+  Harness:
+    slugs: [harnessinc, harness-io, harnessio]
+  Zeta:
+    slugs: [zetasuite, zeta-suite, betterworldtechnology, zetatech]
+  Uber:
+    slugs: [uberinc]
+    # Both answer with test postings ("Test UAT"), not Uber's jobs.
+    exclude: [smartrecruiters:uber, smartrecruiters:uberinc]
+  Atlassian:
+    slugs: [atlassian]
+    workday:
+      - {tenant: atlassian, sites: [Atlassian, External]}
+  Confluent:
+    slugs: [confluentinc]
+  Flipkart:
+    slugs: [flipkartinternet]
+  LinkedIn:
+    # Test boards, not LinkedIn's jobs: greenhouse ("Bug Bash Job", "123123"),
+    # lever ("Anirban jobReq 3 - public", "BO Primary 1").
+    exclude: [greenhouse:linkedin, lever:linkedin]
+    workday:
+      - {tenant: linkedin, sites: [LinkedIn, External]}
+  Booking.com:
+    slugs: [bookingcom, booking]
+    workday:
+      - {tenant: booking, sites: [Booking, External]}
+  # Added 2026-09-27 (the user's list).
+  Wayfair:
+    # smartrecruiters:wayfair answers, but it's one stale posting, not Wayfair's job list.
+    exclude: [smartrecruiters:wayfair]
+    slugs: [wayfair, wayfairllc]
+    workday:
+      - {tenant: wayfair, sites: [Wayfair_Careers, External, wayfair]}
+  Navi:
+    # ashby:navi answers, but it's a different company (US startup), not Navi Technologies.
+    exclude: [ashby:navi]
+    slugs: [navi, navitechnologies, navi-technologies, navifinserv]
+  Upstox:
+    # smartrecruiters:upstox answers, but it's a junk posting ('demat account opening').
+    exclude: [smartrecruiters:upstox]
+    slugs: [upstox, rksv, rksvsecurities]
+  Couchbase:
+    slugs: [couchbase, couchbaseinc]
+    workday:
+      - {tenant: couchbase, sites: [Couchbase, External, couchbase_careers]}
+  CoinDCX:
+    slugs: [coindcx, coin-dcx, neblio]
+  WinZO:
+    slugs: [winzo, winzogames, winzo-games]
+  Ola:
+    slugs: [olacabs, ola-cabs, anitechnologies, olaelectric]
+  Slice:
+    # greenhouse:slice answers, but it's Slice the US pizza app, not slice the Indian fintech.
+    exclude: [greenhouse:slice]
+    slugs: [sliceit, slicefintech, slice-it, garagepreneurs]
+  Acko:
+    slugs: [acko, ackotech, ackogi]
+  BetterPlace:
+    slugs: [betterplace, betterplacesafety, betterplace-safety-solutions]
+  INDMoney:
+    slugs: [indmoney, indwealth, finzoom]
+  PayU:
+    slugs: [payu, payuindia, payu-india, payupayments]
+  Yubi:
+    slugs: [yubi, go-yubi, goyubi, credavenue]
+  Elevate K-12:
+    slugs: [elevatek12, elevate-k12, elevatek-12]
+  Airtel:
+    slugs: [airtel, airtelxlabs, bhartiairtel]
+  CoinSwitch:
+    slugs: [coinswitch, coinswitchkuber, bitcipher]

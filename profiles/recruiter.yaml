@@ -1,0 +1,13 @@
+# A second search: recruiter roles at the same companies, emailed to its own
+# recipient by .github/workflows/scout-recruiter.yml. Everything not set here
+# (the company list) comes from scout.yaml, so companies are edited in one place.
+
+extends: ../scout.yaml
+
+role: recruiter           # also matches Talent Acquisition, Sourcer, Recruiting ... titles
+hours: 24
+location: India
+experience:
+  years: 5                # "3-6 yrs", "5+ yrs" pass; "8+ yrs" doesn't; unstated are kept
+  sde: null               # the SDE-level rule is for engineering titles only
+  ladders: false          # company engineering ladders don't apply to recruiter titles

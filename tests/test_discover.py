@@ -51,9 +51,11 @@ class TestCandidates:
     def test_bundled_candidates_load_and_are_keyed_by_registry_name(self):
         candidates = load_candidates()
         registry = load_registry()
+        from faangscout.normalize import collapse
+
+        names = {collapse(e.name) for e in registry.entries}
         for key in candidates:
-            assert any(key == name.lower().replace(" ", "").replace(".", "")
-                       for name in [e.name for e in registry.entries]), key
+            assert key in names, key
 
 
 class TestDiscover:
@@ -124,3 +126,24 @@ class TestDiscover:
         assert yaml.safe_load(path.read_text())["companies"][0]["name"] == "Acme"
         merged = load_registry(path)
         assert merged.lookup("acme").sources[0].config == {"board": "acme"}
+
+
+def test_excluded_boards_are_never_tried():
+    from faangscout.discover import plan_attempts
+
+    attempts = plan_attempts("LinkedIn", ("linkedin",), {"exclude": ["greenhouse:linkedin"]})
+    assert ("greenhouse", {"board": "linkedin"}) not in attempts
+    assert ("lever", {"site": "linkedin"}) in attempts
+
+
+def test_shipped_exclusions_cover_known_test_boards():
+    from faangscout.companies.registry import load_registry
+    from faangscout.discover import load_candidates, plan_attempts
+    from faangscout.normalize import collapse
+
+    registry, candidates = load_registry(), load_candidates()
+    for name, bad in [("Uber", ("smartrecruiters", {"company": "uber"})),
+                      ("LinkedIn", ("lever", {"site": "linkedin"})),
+                      ("LinkedIn", ("greenhouse", {"board": "linkedin"}))]:
+        entry = registry.lookup(name)
+        assert bad not in plan_attempts(entry.name, entry.aliases, candidates[collapse(name)])

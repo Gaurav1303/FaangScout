@@ -116,7 +116,11 @@ def plan_attempts(name: str, aliases: tuple[str, ...], spec: dict) -> list[tuple
         for provider, key in SLUG_PROVIDERS
     ]
     workday_attempts = [("workday", cfg) for cfg in workday_candidates(spec.get("workday"))]
-    return workday_attempts + slug_attempts if workday_attempts else slug_attempts
+    attempts = workday_attempts + slug_attempts if workday_attempts else slug_attempts
+    # Known false positives: a same-named but unrelated (or test) board.
+    excluded = {str(e).lower() for e in spec.get("exclude") or []}
+    return [(p, c) for p, c in attempts
+            if not any(f"{p}:{v}".lower() in excluded for v in c.values() if isinstance(v, str))]
 
 
 def discover_one(

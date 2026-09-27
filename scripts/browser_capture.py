@@ -60,7 +60,7 @@ def capture(page, target: dict) -> None:
         request = response.request
         responses.append({
             "url": response.url, "method": request.method, "status": response.status,
-            "post": (request.post_data or "")[:600], "size": len(body), "body": body,
+            "post": request.post_data or "", "size": len(body), "body": body,
         })
 
     page.on("response", on_response)
@@ -73,16 +73,24 @@ def capture(page, target: dict) -> None:
     except Exception as exc:  # noqa: BLE001 - report and carry on with the next target
         print(f"  LOAD ERROR {exc!r}"[:300])
 
-    title = page.title() if not page.is_closed() else ""
-    text = page.inner_text("body")[:4000].lower() if not page.is_closed() else ""
+    # A page that never finished loading must not end the whole capture.
+    try:
+        title = page.title() if not page.is_closed() else ""
+        text = page.inner_text("body", timeout=5000)[:4000].lower() if not page.is_closed() else ""
+    except Exception as exc:  # noqa: BLE001 - report and carry on with the next target
+        print(f"  PAGE NOT READY {exc!r}"[:200])
+        title, text = "", ""
     blocked = [m for m in BLOCK_MARKERS if m in title.lower() or m in text[:1500]]
     print(f"  final={page.url}")
     print(f"  title={title[:120]!r} blocked={blocked or 'no'}")
 
     # Job-looking links in the rendered page.
-    links = page.eval_on_selector_all(
-        "a[href]", "els => els.map(e => [e.href, (e.innerText || '').trim().replace(/\\s+/g, ' ')])"
-    )
+    try:
+        links = page.eval_on_selector_all(
+            "a[href]", "els => els.map(e => [e.href, (e.innerText || '').trim().replace(/\\s+/g, ' ')])"
+        )
+    except Exception:  # noqa: BLE001 - page gone or never rendered
+        links = []
     job_links = [(h, t) for h, t in links if JOB_LINK.search(h) and t and len(t) < 160]
     seen = set()
     job_links = [x for x in job_links if not (x[0] in seen or seen.add(x[0]))]
@@ -98,10 +106,13 @@ def capture(page, target: dict) -> None:
         except ValueError:
             parsed = "unparseable"
         print(f"    [{r['status']}] {r['method']} {r['url'][:220]} ({r['size']} bytes)")
+        # ``full: <regex>`` prints matching requests' whole POST body (a
+        # GraphQL query, say) and more of the response.
+        full = bool(target.get("full")) and re.search(target["full"], r["url"] + " " + r["post"])
         if r["post"]:
-            print(f"        post: {r['post'][:400]}")
+            print(f"        post: {r['post'][:8000 if full else 400]}")
         print(f"        shape: {parsed[:500]}")
-        snippet = re.sub(r"\s+", " ", r["body"][:SNIPPET])
+        snippet = re.sub(r"\s+", " ", r["body"][:4000 if full else SNIPPET])
         print(f"        body: {snippet}")
 
 

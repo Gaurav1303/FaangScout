@@ -188,8 +188,10 @@ companies:
 
   - name: Google
     aliases: [google, alphabet]
-    sources: []
-    note: "in-house career site, no public ATS API"
+    # Server-rendered search results (2026-09-23).
+    sources:
+      - provider: google_careers
+        config: {}
 
   - name: Meta
     aliases: [meta, facebook]
@@ -392,3 +394,276 @@ companies:
     sources:
       - provider: oracle_hcm
         config: {host: ehpv.fa.em2.oraclecloud.com, site: CX_1}
+
+# --------------------------------------------------------------------------- #
+# Added 2026-09-23: companies that pay roughly 35-40 LPA or more for ~3 years
+# (SDE-2) in India, per levels.fyi and LeetCode Discuss offer threads. Boards
+# not confirmed yet - `--discover` tries the guesses in discovery_candidates.yaml.
+# --------------------------------------------------------------------------- #
+
+  - name: Flipkart
+    aliases: [flipkart]
+    sources: []
+    note: "careers site loads no job data a script can read"  # checked 2026-09-23
+
+  - name: Swiggy
+    aliases: [swiggy, bundl technologies]
+    # careers.swiggy.com loads its list from MyNextHire (browser capture, 2026-09-23).
+    sources:
+      - provider: mynexthire
+        config: {tenant: swiggy}
+
+  - name: Meesho
+    aliases: [meesho]
+    # Confirmed by live discovery (GitHub Actions run 35882068263).
+    sources:
+      - provider: lever
+        config: {site: meesho}
+
+  - name: Goldman Sachs
+    aliases: [goldman sachs, goldman]
+    # higher.gs.com's own GraphQL search (browser capture, 2026-09-23).
+    sources:
+      - provider: goldman_sachs
+        config: {}
+
+  - name: ServiceNow
+    aliases: [servicenow, service now]
+    # careers.servicenow.com is behind Cloudflare, but its SmartRecruiters
+    # board is public - confirmed by live discovery (run 35885238987).
+    sources:
+      - provider: smartrecruiters
+        config: {company: servicenow}
+
+  - name: Visa
+    aliases: [visa, visa inc]
+    # corporate.visa.com/en/jobs redirects to this Workday board (browser capture, 2026-09-23).
+    sources:
+      - provider: workday
+        config: {host: visa.wd5.myworkdayjobs.com, tenant: visa, site: Visa}
+
+  - name: Palo Alto Networks
+    aliases: [palo alto networks, palo alto]
+    # TalentBrew site (browser capture, 2026-09-23); no dates, dated by first sighting.
+    sources:
+      - provider: talentbrew
+        # ~50 pages of 15 for "software engineer", relevance-ordered, so read them all.
+        config: {host: jobs.paloaltonetworks.com, base_url: "https://jobs.paloaltonetworks.com/en", max_pages: 60}
+
+  - name: Zscaler
+    aliases: [zscaler]
+    # Confirmed by live discovery (GitHub Actions run 35882068263).
+    sources:
+      - provider: greenhouse
+        config: {board: zscaler}
+
+  - name: PayPal
+    aliases: [paypal, pay pal]
+    # Confirmed by live discovery (GitHub Actions run 35882068263).
+    sources:
+      - provider: workday
+        config: {host: paypal.wd1.myworkdayjobs.com, tenant: paypal, site: jobs}
+
+  - name: Razorpay
+    aliases: [razorpay, razor pay]
+    # Confirmed by live discovery (GitHub Actions run 35882068263).
+    sources:
+      - provider: greenhouse
+        config: {board: razorpaysoftwareprivatelimited}
+
+  - name: CRED
+    aliases: [cred, dreamplug]
+    # Confirmed by live discovery (GitHub Actions run 35882068263).
+    sources:
+      - provider: lever
+        config: {site: cred}
+
+  - name: Groww
+    aliases: [groww]
+    # Confirmed by live discovery (GitHub Actions run 35882068263).
+    sources:
+      - provider: greenhouse
+        config: {board: groww}
+
+  - name: Myntra
+    aliases: [myntra]
+    sources: []
+    note: "careers site was down for maintenance when checked"  # checked 2026-09-23
+
+  - name: Dream Sports
+    aliases: [dream sports, dream11, dream 11]
+    sources: []
+    note: "no public job list found"  # checked 2026-09-23
+
+  - name: Tekion
+    aliases: [tekion]
+    # Confirmed by live discovery (GitHub Actions run 35882068263).
+    sources:
+      - provider: ashby
+        config: {board: tekion}
+
+  - name: BrowserStack
+    aliases: [browserstack, browser stack]
+    sources: []
+    note: "no public job list found"  # checked 2026-09-23
+
+  - name: Autodesk
+    aliases: [autodesk]
+    # Confirmed by live discovery (GitHub Actions run 35882068263).
+    sources:
+      - provider: workday
+        config: {host: autodesk.wd1.myworkdayjobs.com, tenant: autodesk, site: Ext}
+
+  - name: Expedia
+    aliases: [expedia, expedia group]
+    # Confirmed by live discovery (GitHub Actions run 35882068263).
+    sources:
+      - provider: workday
+        config: {host: expedia.wd108.myworkdayjobs.com, tenant: expedia, site: search}
+
+  - name: Twilio
+    aliases: [twilio]
+    # Confirmed by live discovery (GitHub Actions run 35882068263).
+    sources:
+      - provider: greenhouse
+        config: {board: twilio}
+
+  - name: Harness
+    aliases: [harness, harness io, harness.io]
+    # Confirmed by live discovery (GitHub Actions run 35882068263).
+    sources:
+      - provider: greenhouse
+        config: {board: harnessinc}
+
+  - name: Zeta
+    aliases: [zeta, zeta suite]
+    # Confirmed by live discovery (GitHub Actions run 35882068263).
+    sources:
+      - provider: lever
+        config: {site: zeta}
+
+  - name: Uber
+    aliases: [uber]
+    sources: []
+    note: "careers site blocks scripted access (Cloudflare)"  # checked 2026-09-23
+
+  - name: Atlassian
+    aliases: [atlassian]
+    # The careers page's own listing endpoint (browser capture, 2026-09-23).
+    sources:
+      - provider: atlassian
+        config: {}
+
+  - name: Confluent
+    aliases: [confluent]
+    # Confirmed by live discovery (GitHub Actions run 35882068263).
+    sources:
+      - provider: ashby
+        config: {board: confluent}
+
+  - name: LinkedIn
+    aliases: [linkedin, linked in]
+    sources: []
+    note: "no public job list found (careers page loads none)"  # checked 2026-09-23
+
+  - name: Booking.com
+    aliases: [booking.com, booking, booking holdings]
+    sources: []
+    note: "careers site blocks scripted access (403)"  # checked 2026-09-23
+
+# --------------------------------------------------------------------------- #
+# Added 2026-09-27 from the user's list. Boards not confirmed yet - `--discover`
+# tries the guesses in discovery_candidates.yaml.
+# --------------------------------------------------------------------------- #
+
+  - name: Wayfair
+    aliases: [wayfair]
+    sources: []
+    note: "careers site blocks scripted access (PerimeterX)"  # checked 2026-09-27
+
+  - name: Navi
+    aliases: [navi, navi technologies]
+    sources: []
+    note: "careers site blocks scripted access (Cloudflare)"  # checked 2026-09-27
+
+  - name: Upstox
+    aliases: [upstox, rksv]
+    sources: []
+    note: "careers page shows no job list"  # checked 2026-09-27
+
+  - name: Couchbase
+    aliases: [couchbase]
+    # Confirmed by live discovery (GitHub Actions run 36321077924).
+    sources:
+      - provider: greenhouse
+        config: {board: couchbaseinc}
+
+  - name: CoinDCX
+    aliases: [coindcx, coin dcx]
+    sources: []
+    note: "careers site blocks scripted access (Cloudflare)"  # checked 2026-09-27
+
+  - name: WinZO
+    aliases: [winzo, winzo games]
+    sources: []
+    note: "careers page is gone (HTTP 410)"  # checked 2026-09-27
+
+  - name: Ola
+    aliases: [ola, ola cabs, olacabs, ani technologies]
+    sources: []
+    note: "careers site blocks scripted access (403)"  # checked 2026-09-27
+
+  - name: Slice
+    aliases: [slice, slice fintech, sliceit]
+    # slice.bank.in/careers embeds Kula (browser capture, 2026-09-27).
+    sources:
+      - provider: kula
+        config: {account: slice}
+
+  - name: Acko
+    aliases: [acko, acko general insurance]
+    # acko.com/careers/jobs embeds Kula (browser capture, 2026-09-27).
+    sources:
+      - provider: kula
+        config: {account: acko}
+
+  - name: BetterPlace
+    aliases: [betterplace, better place]
+    sources: []
+    note: "careers page shows no job list"  # checked 2026-09-27
+
+  - name: INDMoney
+    aliases: [indmoney, ind money, indwealth]
+    sources: []
+    note: "careers site blocks scripted access (Cloudflare)"  # checked 2026-09-27
+
+  - name: PayU
+    aliases: [payu, payu india, pay u]
+    # SAP SuccessFactors career site; payu.in/careers redirects here (2026-09-27).
+    sources:
+      - provider: successfactors
+        config: {host: careers.payu.in}
+
+  - name: Yubi
+    aliases: [yubi, credavenue, cred avenue, go yubi]
+    sources: []
+    note: "careers site blocks scripted access (CloudFront)"  # checked 2026-09-27
+
+  - name: Elevate K-12
+    aliases: [elevate k-12, elevate k12, elevatek12, fullmind]
+    # elevatek12.com/careers links its Workable board "fullmind" (2026-09-27).
+    sources:
+      - provider: workable
+        config: {account: fullmind}
+
+  - name: Airtel
+    aliases: [airtel, airtel xlabs, airtel x labs, bharti airtel]
+    sources: []
+    note: "careers site doesn't respond (timed out)"  # checked 2026-09-27
+
+  - name: CoinSwitch
+    aliases: [coinswitch, coin switch, coinswitch kuber]
+    # coinswitch.co links its Recruiterflow page (browser capture, 2026-09-27).
+    sources:
+      - provider: recruiterflow
+        config: {company: coinswitch}

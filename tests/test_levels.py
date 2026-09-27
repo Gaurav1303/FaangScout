@@ -117,3 +117,27 @@ class TestEitherCounts:
                                _job("Salesforce", "LMTS")], 3)
         assert kept == []
         assert rejected["Senior Member of Technical Staff"].startswith("requires ~4–8 yrs (Salesforce SMTS)")
+
+
+@pytest.mark.parametrize(
+    "title, sde",
+    [("Software Engineer III, Infrastructure, Google Cloud Storage", 2),
+     ("Software Engineer II, YouTube", 1),
+     ("Senior Software Engineer, Search", 3),
+     ("Senior Staff Software Engineer, YouTube Create", 5),
+     ("Software Engineer, PhD, Early Career, 2026", 1)],
+)
+def test_google_ladder(title, sde):
+    assert company_level("Google", title).sde == sde
+
+
+@pytest.mark.parametrize(
+    "title, expected",
+    [("Senior Staff Software Engineer, YouTube Create", 8),        # one level, two words: strictest wins
+     ("Senior Software Engineering Manager, Generative AI", 8),
+     ("Software Engineer 2 / Senior Software Engineer", 3)],        # real alternatives: lenient wins
+)
+def test_two_level_words_are_not_two_levels(title, expected):
+    text = ("Minimum qualifications:\n- 8 years of experience in software development.\n"
+            "- 3 years of experience in a technical leadership role.")
+    assert assess(_job("Google", title, text)).min_years == expected
