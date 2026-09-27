@@ -628,3 +628,79 @@ def test_google_details_start_at_the_jobs_own_heading():
     job = Job(company="Google", title="Senior Staff Software Engineer, YouTube & Co", url="u",
               source="google_careers", detail_url="https://x/1")
     assert assess(provider.fetch_details(job)).min_years == 10
+
+
+class TestWorkable:
+    PAGE1 = {"total": 2, "nextPage": "tok2", "results": [{
+        "id": 6154745, "shortcode": "A64791738C", "title": "Software Engineer - Platform", "remote": False,
+        "location": {"country": "India", "countryCode": "IN", "city": "Mohali", "region": "Punjab"},
+        "locations": [{"country": "India", "countryCode": "IN", "city": "Mohali", "region": "Punjab", "hidden": False}],
+        "state": "published", "published": "2026-09-26T00:00:00.000Z", "type": "full", "department": ["Engineering"],
+        "workplace": "hybrid"}]}
+    PAGE2 = {"total": 2, "results": [{
+        "id": 1, "shortcode": "C516DE61A0", "title": "Virtual Computer Science Educator", "remote": True,
+        "locations": [{"country": "United States", "city": "New York", "region": "New York"}],
+        "state": "published", "published": "2026-09-20T00:00:00.000Z", "workplace": "remote"}]}
+
+    def test_pages_with_next_token(self):
+        import json as _json
+        from faangscout.providers.workable import WorkableProvider
+
+        bodies = []
+
+        def handler(request):
+            if request.method == "GET":
+                return httpx.Response(200, json={"description": "<p>Build.</p>", "requirements": "<ul><li>3+ years of experience</li></ul>"})
+            body = _json.loads(request.content)
+            bodies.append(body)
+            return httpx.Response(200, json=self.PAGE2 if body.get("token") == "tok2" else self.PAGE1)
+
+        provider = WorkableProvider(client=client_with(handler))
+        jobs = provider.fetch({"account": "fullmind", "company_name": "Elevate K-12"}, HINTS)
+        assert [b.get("token") for b in bodies] == [None, "tok2"]
+        job = jobs[0]
+        assert job.url == "https://apply.workable.com/fullmind/j/A64791738C/"
+        assert job.locations == ("Mohali, Punjab, India",)
+        assert job.posted_at == datetime(2026, 9, 26, tzinfo=UTC)
+        assert job.department == "Engineering" and job.remote is None
+        assert jobs[1].remote is True
+        assert "3+ years of experience" in provider.fetch_details(job).description
+
+
+SF_ROW = ('<tr class="data-row"> <td class="colTitle" headers="hdrTitle"> <span class="jobTitle hidden-phone"> '
+          '<a href="/PayU/job/Bengaluru-Software-Engineer-II/53683180/" class="jobTitle-link">Software Engineer II</a> </span> </td> '
+          '<td class="colLocation hidden-phone" headers="hdrLocation"> <span class="jobLocation"> Bengaluru, IN </span> </td> '
+          '<td class="colDate hidden-phone" nowrap="nowrap" headers="hdrDate"> <span class="jobDate visible-phone">{date}</span> </td> </tr>')
+
+
+class TestSuccessFactors:
+    def test_parses_rows_and_stops_at_the_window(self):
+        from faangscout.providers.successfactors import SuccessFactorsProvider
+
+        calls = []
+
+        def handler(request):
+            calls.append(request.url.params["startrow"])
+            assert request.url.params["sortColumn"] == "referencedate"
+            html = ('<span class="paginationLabel">Results <b>1 – 25</b> of <b>135</b></span>'
+                    + SF_ROW.format(date="26 Sept 2026") if request.url.params["startrow"] == "0"
+                    else SF_ROW.format(date="1 Aug 2026").replace("53683180", "1"))
+            return httpx.Response(200, text=html)
+
+        jobs = SuccessFactorsProvider(client=client_with(handler)).fetch(
+            {"host": "careers.payu.in", "company_name": "PayU"},
+            FetchHints(since=datetime(2026, 9, 25, tzinfo=UTC)))
+        assert calls == ["0", "25"]
+        job = jobs[0]
+        assert job.title == "Software Engineer II"
+        assert job.url == "https://careers.payu.in/PayU/job/Bengaluru-Software-Engineer-II/53683180/"
+        assert job.locations == ("Bengaluru, IN",)
+        assert job.posted_at == datetime(2026, 9, 26, tzinfo=UTC)
+        assert job.precision == Precision.DATE_ONLY
+
+    def test_layout_change_raises(self):
+        from faangscout.providers.successfactors import SuccessFactorsProvider
+
+        provider = SuccessFactorsProvider(client=client_with(lambda r: httpx.Response(200, text="<html></html>")))
+        with pytest.raises(ProviderError):
+            provider.fetch({"host": "careers.payu.in"}, HINTS)

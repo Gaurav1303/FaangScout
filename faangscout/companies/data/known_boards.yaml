@@ -579,14 +579,17 @@ companies:
   - name: Wayfair
     aliases: [wayfair]
     sources: []
+    note: "careers site blocks scripted access (PerimeterX)"  # checked 2026-09-27
 
   - name: Navi
     aliases: [navi, navi technologies]
     sources: []
+    note: "careers site blocks scripted access (Cloudflare)"  # checked 2026-09-27
 
   - name: Upstox
     aliases: [upstox, rksv]
     sources: []
+    note: "careers page shows no job list"  # checked 2026-09-27
 
   - name: Couchbase
     aliases: [couchbase]
@@ -598,14 +601,17 @@ companies:
   - name: CoinDCX
     aliases: [coindcx, coin dcx]
     sources: []
+    note: "careers site blocks scripted access (Cloudflare)"  # checked 2026-09-27
 
   - name: WinZO
     aliases: [winzo, winzo games]
     sources: []
+    note: "careers page is gone (HTTP 410)"  # checked 2026-09-27
 
   - name: Ola
     aliases: [ola, ola cabs, olacabs, ani technologies]
     sources: []
+    note: "careers site blocks scripted access (403)"  # checked 2026-09-27
 
   - name: Slice
     aliases: [slice, slice fintech, sliceit]
@@ -618,26 +624,36 @@ companies:
   - name: BetterPlace
     aliases: [betterplace, better place]
     sources: []
+    note: "careers page shows no job list"  # checked 2026-09-27
 
   - name: INDMoney
     aliases: [indmoney, ind money, indwealth]
     sources: []
+    note: "careers site blocks scripted access (Cloudflare)"  # checked 2026-09-27
 
   - name: PayU
     aliases: [payu, payu india, pay u]
-    sources: []
+    # SAP SuccessFactors career site; payu.in/careers redirects here (2026-09-27).
+    sources:
+      - provider: successfactors
+        config: {host: careers.payu.in}
 
   - name: Yubi
     aliases: [yubi, credavenue, cred avenue, go yubi]
     sources: []
+    note: "careers site blocks scripted access (CloudFront)"  # checked 2026-09-27
 
   - name: Elevate K-12
-    aliases: [elevate k-12, elevate k12, elevatek12]
-    sources: []
+    aliases: [elevate k-12, elevate k12, elevatek12, fullmind]
+    # elevatek12.com/careers links its Workable board "fullmind" (2026-09-27).
+    sources:
+      - provider: workable
+        config: {account: fullmind}
 
   - name: Airtel
     aliases: [airtel, airtel xlabs, airtel x labs, bharti airtel]
     sources: []
+    note: "careers site doesn't respond (timed out)"  # checked 2026-09-27
 
   - name: CoinSwitch
     aliases: [coinswitch, coin switch, coinswitch kuber]

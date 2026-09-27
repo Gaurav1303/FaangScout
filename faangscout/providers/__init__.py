@@ -24,7 +24,9 @@ from . import (  # noqa: F401
     rippling_ats,
     sharechat,
     smartrecruiters,
+    successfactors,
     talentbrew,
+    workable,
     workday,
 )
 

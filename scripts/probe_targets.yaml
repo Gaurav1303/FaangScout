@@ -1,30 +1,12 @@
+- kind: items
+  name: Kula slice
+  url: https://careers.kula.ai/api/internal/ats_job_posts?accountName=slice&page=1&type=ats_job_post.index&items=99
+  path: data
+  count: 1
+  limit: 6000
 - kind: around
-  name: PayU SuccessFactors search (newest)
-  url: https://careers.payu.in/search/?q=&sortColumn=referencedate&sortDirection=desc
-  pattern: jobTitle-link|jobLocation|jobDate|paginationLabel
-  count: 5
-  context: 250
-- kind: raw
-  name: Workable fullmind (widget API)
-  url: https://apply.workable.com/api/v1/widget/accounts/fullmind?details=false
-  limit: 1500
-- kind: raw
-  name: Workable fullmind (v3 jobs)
-  method: POST
-  url: https://apply.workable.com/api/v3/accounts/fullmind/jobs
-  json:
-    query: ''
-    location: []
-    department: []
-    worktype: []
-    remote: []
-  limit: 1500
-- kind: around
-  name: CoinSwitch Recruiterflow
-  url: https://recruiterflow.com/coinswitch/jobs
-  pattern: /coinswitch/jobs/\d+|job-title|location
+  name: Kula job page link
+  url: https://slice.bank.in/careers/open-positions
+  pattern: kula\.ai/[^\"' ]+
   count: 4
-  context: 250
-- kind: fingerprint
-  name: Airtel careers (alt)
-  url: https://www.airtel.in/careers
+  context: 120
