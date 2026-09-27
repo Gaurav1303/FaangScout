@@ -51,9 +51,11 @@ class TestCandidates:
     def test_bundled_candidates_load_and_are_keyed_by_registry_name(self):
         candidates = load_candidates()
         registry = load_registry()
+        from faangscout.normalize import collapse
+
+        names = {collapse(e.name) for e in registry.entries}
         for key in candidates:
-            assert any(key == name.lower().replace(" ", "").replace(".", "")
-                       for name in [e.name for e in registry.entries]), key
+            assert key in names, key
 
 
 class TestDiscover:
