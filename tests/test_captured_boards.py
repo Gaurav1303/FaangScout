@@ -704,3 +704,57 @@ class TestSuccessFactors:
         provider = SuccessFactorsProvider(client=client_with(lambda r: httpx.Response(200, text="<html></html>")))
         with pytest.raises(ProviderError):
             provider.fetch({"host": "careers.payu.in"}, HINTS)
+
+
+class TestKula:
+    PAYLOAD = {"data": [
+        {"id": 50594, "account_id": 1528, "title": "SDE 2 - Backend", "listed": True, "launch_at": "2026-07-09T10:56:21.000Z",
+         "ats_job": {"job_description": "<ul><li>3+ years of experience in server-side development.</li></ul>",
+                     "workplace": "office", "employment_type": "full_time",
+                     "ats_department": {"id": 8592, "name": "Technology", "depth": 1},
+                     "offices": [{"id": 4516, "name": "Karnataka_SSFB_Ashford", "location": "Bengaluru, Karnataka, India",
+                                  "country": "India", "city": "Bengaluru", "remote": False, "workplace": "office"}]}},
+        {"id": 1, "title": "Unlisted", "listed": False, "ats_job": {}},
+    ], "meta": {"count": 2, "page": 1, "items": 99, "pages": 1}, "errors": []}
+
+    def test_parses_posts(self):
+        from faangscout.providers.kula import KulaProvider
+
+        def handler(request):
+            assert request.url.path == "/api/internal/ats_job_posts"
+            assert request.url.params["accountName"] == "slice"
+            return httpx.Response(200, json=self.PAYLOAD)
+
+        jobs = KulaProvider(client=client_with(handler)).fetch({"account": "slice", "company_name": "Slice"}, HINTS)
+        assert len(jobs) == 1
+        job = jobs[0]
+        assert job.url == "https://careers.kula.ai/slice/50594"
+        assert job.locations == ("Bengaluru, Karnataka, India",)
+        assert job.posted_at == datetime(2026, 7, 9, 10, 56, 21, tzinfo=UTC)
+        assert job.department == "Technology" and job.remote is False
+        assert "3+ years of experience" in job.description
+
+
+class TestRecruiterflow:
+    PAGE = ('<script type="text/javascript"> window.jobsList = {"department": [["Engineering", [{"apply_link": "coinswitch/jobs/662", '
+            '"details": "Bengaluru", "employment_type": "Full time", "job_id": 662, "job_name": "Enterprise Security Engineer", '
+            '"last_opened": "2026-04-08T07:05:07+0000", "remote_type": null}]], ["Legal", [{"apply_link": "coinswitch/jobs/705", '
+            '"details": "Bengaluru", "employment_type": "Full time", "job_id": 705, "job_name": "Legal Counsel", '
+            '"last_opened": "2026-07-01T00:00:00+0000", "remote_type": null}]]], "group": []}; window.viewOpportunitiesBtnColor = "#0A58FF";</script>')
+
+    def test_parses_embedded_list(self):
+        from faangscout.providers.recruiterflow import RecruiterflowProvider
+
+        provider = RecruiterflowProvider(client=client_with(lambda r: httpx.Response(200, text=self.PAGE)))
+        jobs = provider.fetch({"company": "coinswitch", "company_name": "CoinSwitch"}, HINTS)
+        assert [(j.title, j.department, j.locations) for j in jobs] == [
+            ("Enterprise Security Engineer", "Engineering", ("Bengaluru",)), ("Legal Counsel", "Legal", ("Bengaluru",))]
+        assert jobs[0].url == "https://recruiterflow.com/coinswitch/jobs/662"
+        assert jobs[0].posted_at == datetime(2026, 4, 8, 7, 5, 7, tzinfo=UTC)
+
+    def test_layout_change_raises(self):
+        from faangscout.providers.recruiterflow import RecruiterflowProvider
+
+        provider = RecruiterflowProvider(client=client_with(lambda r: httpx.Response(200, text="<html></html>")))
+        with pytest.raises(ProviderError):
+            provider.fetch({"company": "coinswitch"}, HINTS)

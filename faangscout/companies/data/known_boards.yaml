@@ -615,11 +615,17 @@ companies:
 
   - name: Slice
     aliases: [slice, slice fintech, sliceit]
-    sources: []
+    # slice.bank.in/careers embeds Kula (browser capture, 2026-09-27).
+    sources:
+      - provider: kula
+        config: {account: slice}
 
   - name: Acko
     aliases: [acko, acko general insurance]
-    sources: []
+    # acko.com/careers/jobs embeds Kula (browser capture, 2026-09-27).
+    sources:
+      - provider: kula
+        config: {account: acko}
 
   - name: BetterPlace
     aliases: [betterplace, better place]
@@ -657,4 +663,7 @@ companies:
 
   - name: CoinSwitch
     aliases: [coinswitch, coin switch, coinswitch kuber]
-    sources: []
+    # coinswitch.co links its Recruiterflow page (browser capture, 2026-09-27).
+    sources:
+      - provider: recruiterflow
+        config: {company: coinswitch}
