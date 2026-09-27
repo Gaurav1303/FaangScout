@@ -1,30 +1,22 @@
-- name: Wayfair
-  url: https://www.aboutwayfair.com/careers/jobs
-- name: Navi
-  url: https://navi.com/careers
-- name: Upstox
+- name: Wayfair jobs
+  url: https://www.wayfair.com/careers/jobs?location=Bengaluru
+  wait_ms: 9000
+- name: Slice open positions
+  url: https://slice.bank.in/careers/open-positions
+  wait_ms: 9000
+- name: Acko jobs
+  url: https://www.acko.com/careers/jobs/
+  wait_ms: 9000
+- name: BetterPlace careers.html
+  url: https://betterplace.co.in/careers.html
+  wait_ms: 9000
+- name: Upstox careers (long wait)
   url: https://upstox.com/careers/
-- name: CoinDCX
-  url: https://careers.coindcx.com/
-- name: WinZO
-  url: https://www.winzogames.com/careers
-- name: Ola
-  url: https://www.olacabs.com/careers
-- name: Slice
-  url: https://www.sliceit.com/careers
-- name: Acko
-  url: https://www.acko.com/careers/
-- name: BetterPlace
-  url: https://www.betterplace.co.in/careers
-- name: INDMoney
-  url: https://www.indmoney.com/careers
-- name: PayU
-  url: https://payu.in/careers
-- name: Yubi
-  url: https://www.go-yubi.com/careers/
-- name: Elevate K-12
-  url: https://www.elevatek12.com/careers/
-- name: Airtel
+  wait_ms: 12000
+  scrolls: 6
+- name: Airtel careers
   url: https://careers.airtel.com/
-- name: CoinSwitch
-  url: https://coinswitch.co/careers
+  wait_ms: 12000
+- name: CoinSwitch Recruiterflow
+  url: https://recruiterflow.com/coinswitch/jobs
+  wait_ms: 8000

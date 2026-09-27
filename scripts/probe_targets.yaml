@@ -1,45 +1,30 @@
+- kind: around
+  name: PayU SuccessFactors search (newest)
+  url: https://careers.payu.in/search/?q=&sortColumn=referencedate&sortDirection=desc
+  pattern: jobTitle-link|jobLocation|jobDate|paginationLabel
+  count: 5
+  context: 250
+- kind: raw
+  name: Workable fullmind (widget API)
+  url: https://apply.workable.com/api/v1/widget/accounts/fullmind?details=false
+  limit: 1500
+- kind: raw
+  name: Workable fullmind (v3 jobs)
+  method: POST
+  url: https://apply.workable.com/api/v3/accounts/fullmind/jobs
+  json:
+    query: ''
+    location: []
+    department: []
+    worktype: []
+    remote: []
+  limit: 1500
+- kind: around
+  name: CoinSwitch Recruiterflow
+  url: https://recruiterflow.com/coinswitch/jobs
+  pattern: /coinswitch/jobs/\d+|job-title|location
+  count: 4
+  context: 250
 - kind: fingerprint
-  name: Wayfair
-  url: https://www.aboutwayfair.com/careers/jobs
-- kind: fingerprint
-  name: Navi
-  url: https://navi.com/careers
-- kind: fingerprint
-  name: Upstox
-  url: https://upstox.com/careers/
-- kind: fingerprint
-  name: CoinDCX
-  url: https://careers.coindcx.com/
-- kind: fingerprint
-  name: WinZO
-  url: https://www.winzogames.com/careers
-- kind: fingerprint
-  name: Ola
-  url: https://www.olacabs.com/careers
-- kind: fingerprint
-  name: Slice
-  url: https://www.sliceit.com/careers
-- kind: fingerprint
-  name: Acko
-  url: https://www.acko.com/careers/
-- kind: fingerprint
-  name: BetterPlace
-  url: https://www.betterplace.co.in/careers
-- kind: fingerprint
-  name: INDMoney
-  url: https://www.indmoney.com/careers
-- kind: fingerprint
-  name: PayU
-  url: https://payu.in/careers
-- kind: fingerprint
-  name: Yubi
-  url: https://www.go-yubi.com/careers/
-- kind: fingerprint
-  name: Elevate K-12
-  url: https://www.elevatek12.com/careers/
-- kind: fingerprint
-  name: Airtel
-  url: https://careers.airtel.com/
-- kind: fingerprint
-  name: CoinSwitch
-  url: https://coinswitch.co/careers
+  name: Airtel careers (alt)
+  url: https://www.airtel.in/careers
