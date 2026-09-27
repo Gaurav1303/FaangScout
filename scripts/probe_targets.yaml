@@ -1,12 +1,25 @@
-- kind: items
-  name: Kula slice
+- kind: shape
+  name: Kula slice shape
   url: https://careers.kula.ai/api/internal/ats_job_posts?accountName=slice&page=1&type=ats_job_post.index&items=99
-  path: data
-  count: 1
-  limit: 6000
+  depth: 5
 - kind: around
-  name: Kula job page link
-  url: https://slice.bank.in/careers/open-positions
-  pattern: kula\.ai/[^\"' ]+
-  count: 4
-  context: 120
+  name: Kula slice ats_job non-description fields
+  url: https://careers.kula.ai/api/internal/ats_job_posts?accountName=slice&page=1&type=ats_job_post.index&items=99
+  pattern: \"location[a-z_]*\"|\"city\"|\"slug\"|\"department[a-z_]*\"|\"employment_type\"|\"workplace[a-z_]*\"|\"public_url\"|\"url\"
+  count: 8
+  context: 160
+- kind: link
+  name: Kula job page guess
+  url: https://careers.kula.ai/slice/50594
+- kind: around
+  name: Recruiterflow embedded data
+  url: https://recruiterflow.com/coinswitch/jobs
+  pattern: jobs/662|\"title\"|job_title|__NEXT_DATA__|window\.__
+  count: 6
+  context: 300
+- kind: around
+  name: Recruiterflow job page
+  url: https://recruiterflow.com/coinswitch/jobs/662
+  pattern: <h1|<title|experience|Location|posted
+  count: 6
+  context: 200
