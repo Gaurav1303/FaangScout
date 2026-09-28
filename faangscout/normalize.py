@@ -78,9 +78,9 @@ ROLE_SYNONYMS: dict[str, tuple[str, ...]] = {
         "talent partner",
         "talent sourcing",
         "talent attraction",
+        # Not bare "sourcing specialist/partner": procurement uses those too
+        # (Qualcomm "Sourcing Specialist Associate-Travel").
         "sourcer",
-        "sourcing specialist",
-        "sourcing partner",
         "hiring specialist",
         "hiring partner",
         "campus hiring",

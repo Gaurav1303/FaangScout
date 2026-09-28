@@ -269,6 +269,8 @@ def test_his_workflow_does_not_email():
     ("Associate, TA Stores", False),
     ("Data Lead", False),
     ("Software Engineer, Early Careers", False),
+    ("Sourcing Specialist Associate-Travel", False),  # procurement
+    ("Strategic Sourcing Partner", False),
 ])
 def test_wider_recruiter_vocabulary(title, keep):
     criteria = SearchCriteria.build(["a"], role="recruiter", posted_within_hours=None)
