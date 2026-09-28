@@ -44,6 +44,8 @@ _DAY = timedelta(days=1)
 
 @register("apple_jobs")
 class AppleJobsProvider(Provider):
+    keyword_search = True
+
     def fetch(self, config: dict, hints: FetchHints) -> list[Job]:
         base = config.get("base_url", _BASE).rstrip("/")
         locale = config.get("locale", "en-us")

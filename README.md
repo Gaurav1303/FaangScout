@@ -201,13 +201,34 @@ company list lives in `scout.yaml` alone:
 ```yaml
 extends: ../scout.yaml
 role: recruiter
-experience: {years: 5, sde: null, ladders: false}
+search_terms: [recruiter, talent acquisition, recruitment, recruiting, sourcer, campus hiring]
+experience:
+  years: 5
+  overqualified_years: 2
+  exclude_titles: [intern, internship, apprentice, apprenticeship, trainee]
+  sde: null
+  ladders: false
 ```
 
-`sde: null, ladders: false` turn off the engineering-level rules (company
-ladders map engineering titles - "Lead" at Salesforce is LMTS, 8+ yrs, which
-says nothing about a "Lead Recruiter"); stated years decide, then generic title
-words ("Senior"/"Lead" 5+, "Associate" 0-2).
+- `role: recruiter` matches Recruiter, Talent Acquisition, Campus/University
+  Recruiting, Campus Hiring, University Relations, Sourcer, TA
+  Partner/Specialist/Lead, Hiring Partner, Employer Branding ... titles (and any
+  job in a "Talent Acquisition" department) - `ROLE_SYNONYMS["recruiter"]` in
+  `faangscout/normalize.py`.
+- `search_terms`: boards that search by keyword (Amazon, Apple, Google,
+  Eightfold, Oracle, TalentBrew, and Workday's first pass) only return what the
+  keyword finds, so they are asked once per term. Full-list boards (Greenhouse,
+  Lever, Ashby, ...) already see every posting and are read once. Without
+  `search_terms` the role is the one keyword, as before.
+- `overqualified_years: 2` keeps postings whose range tops out up to 2 years
+  below hers ("2-4 yrs", "1-3 yrs" at 5); "0-2 yrs" and entry-level titles are
+  still dropped, as are roles needing more.
+- `exclude_titles` drops internships and apprenticeships whatever years they
+  state.
+- `sde: null, ladders: false` turn off the engineering-level rules (company
+  ladders map engineering titles - "Lead" at Salesforce is LMTS, 8+ yrs, which
+  says nothing about a "Lead Recruiter"); stated years decide, then generic
+  title words ("Senior"/"Lead" 5+, "Associate" 0-2).
 
 **Set up** (Settings → Secrets and variables → Actions → New repository secret):
 
@@ -221,11 +242,6 @@ The recipient is a secret, not in the config, because the repo is public.
 Send one now with **Actions → FaangScout (recruiter) → Run workflow**
 (optionally with a wider `hours`). A day with nothing new sends no email.
 Other SMTP servers work too: set `SMTP_HOST` / `SMTP_PORT` (STARTTLS).
-
-Known limit: a few boards search by keyword only (Eightfold, Oracle), so a
-posting titled only "Talent Acquisition Partner" can be missed there;
-full-list boards (Greenhouse, Lever, Ashby, Workday's second pass, ...) see
-every title.
 
 For a local run: `SMTP_USERNAME=... SMTP_PASSWORD=... faangscout --config
 profiles/recruiter.yaml --email-to someone@example.com`.

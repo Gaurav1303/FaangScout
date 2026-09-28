@@ -10,6 +10,7 @@ import logging
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from dataclasses import replace
 from datetime import UTC, datetime
 
 import httpx
@@ -70,6 +71,7 @@ def scout(
         since=criteria.since,
         role_query=criteria.filters.get("role"),
         location=criteria.filters.get("location"),
+        search_terms=criteria.search_terms,
     )
     fetched_jobs: list[Job] = []
 
@@ -105,7 +107,7 @@ def _fetch_one(
         # for display/dedup - it must not depend on whether the registry
         # entry happened to also set company_name in its board config.
         config = {**source.config, "company_name": company.name}
-        jobs = provider.fetch(config, hints)
+        jobs = _fetch_terms(provider, config, hints)
     except ProviderError as exc:
         src_report.error = str(exc)
         return [], _timed(src_report, started)
@@ -116,6 +118,30 @@ def _fetch_one(
 
     src_report.fetched = len(jobs)
     return jobs, _timed(src_report, started)
+
+
+def _fetch_terms(provider: Provider, config: dict, hints: FetchHints) -> list[Job]:
+    """Fetch one board - once per search term when the board searches by keyword.
+
+    A term that fails doesn't lose the others' results; the board counts as
+    failed only when every term does.
+    """
+    terms = hints.search_terms
+    if not provider.keyword_search or len(terms) < 2:
+        return provider.fetch(config, hints)
+    merged: dict[str, Job] = {}
+    errors: list[ProviderError] = []
+    for term in terms:
+        try:
+            jobs = provider.fetch(config, replace(hints, role_query=term))
+        except ProviderError as exc:
+            errors.append(exc)
+            continue
+        for job in jobs:
+            merged.setdefault(job.external_id or job.url, job)
+    if errors and len(errors) == len(terms):
+        raise errors[0]
+    return list(merged.values())
 
 
 def _timed(src_report: SourceReport, started: float) -> SourceReport:

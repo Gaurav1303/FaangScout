@@ -30,6 +30,8 @@ _PAGE_SIZE = 100
 
 @register("amazon")
 class AmazonProvider(Provider):
+    keyword_search = True
+
     def fetch(self, config: dict, hints: FetchHints) -> list[Job]:
         base = config.get("base_url", _DEFAULT_BASE).rstrip("/")
         company = config.get("company_name", "Amazon")

@@ -540,6 +540,15 @@ class TestWorkdayOrdering:
         assert sorted(j.external_id for j in jobs) == ["R-both", "R-mastercard-pune", "R-nvidia-new"]
         assert {text for text, _ in calls} == {"software engineer", ""}
 
+    def test_one_keyword_pass_per_search_term_then_the_listing_once(self):
+        calls = []
+        keyword = {0: [self._posting("ta", "Posted Today")]}
+        WorkdayProvider(client=client_with(self._handler(keyword, {}, calls))).fetch(
+            self.CONFIG, FetchHints(role_query="recruiter", search_terms=("recruiter", "talent acquisition")))
+        texts = [text for text, _ in calls]
+        assert texts.count("") == 1
+        assert {"recruiter", "talent acquisition"} <= set(texts)
+
     def test_without_role_only_the_listing_is_read(self):
         calls = []
         WorkdayProvider(client=client_with(self._handler({}, {}, calls))).fetch(self.CONFIG, HINTS)

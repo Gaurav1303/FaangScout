@@ -32,6 +32,8 @@ _MAX_PAGES = 40
 
 @register("eightfold")
 class EightfoldProvider(Provider):
+    keyword_search = True
+
     #: Eightfold answered the first detail request of a burst with HTTP 429.
     detail_concurrency = 2
 

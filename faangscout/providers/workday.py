@@ -60,9 +60,10 @@ class WorkdayProvider(Provider):
         #   elsewhere: it missed today's "Software Engineer II" postings at
         #   Mastercard and a dozen at Salesforce that the keyword search found.
         # So run both and merge. The role filter decides what matches either way.
-        passes = [("", True)]
-        if hints.role_query:
-            passes.insert(0, (hints.role_query, False))
+        # One keyword pass per search term (a profile's ``search_terms``, else
+        # the role), then the unfiltered list once.
+        terms = hints.search_terms or ((hints.role_query,) if hints.role_query else ())
+        passes = [(term, False) for term in terms] + [("", True)]
 
         merged: dict[str, Job] = {}
         for search_text, stop_at_window in passes:

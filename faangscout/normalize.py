@@ -71,13 +71,32 @@ ROLE_SYNONYMS: dict[str, tuple[str, ...]] = {
     "solutions architect": ("solutions architect", "solution architect", "sales engineer", "solutions engineer"),
     "recruiter": (
         "recruiter",
-        "recruiting",
-        "recruitment",
+        "recruiters",
+        "recruiting",  # also "Campus Recruiting", "University Recruiting"
+        "recruitment",  # also "Campus Recruitment", "Recruitment Coordinator"
         "talent acquisition",
         "talent partner",
+        "talent sourcing",
+        "talent attraction",
         "sourcer",
         "sourcing specialist",
+        "sourcing partner",
         "hiring specialist",
+        "hiring partner",
+        "campus hiring",
+        "campus relations",
+        "campus engagement",
+        "university relations",
+        "university hiring",
+        # "TA" only with a role word - bare "TA" also names e.g. Amazon "TA Stores".
+        "ta partner",
+        "ta specialist",
+        "ta lead",
+        "ta manager",
+        "ta coordinator",
+        "employer branding",
+        "executive search",
+        "headhunter",
     ),
 }
 

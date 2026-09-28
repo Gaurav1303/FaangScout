@@ -34,6 +34,8 @@ _MAX_PAGES = 25
 
 @register("talentbrew")
 class TalentBrewProvider(Provider):
+    keyword_search = True
+
     def fetch(self, config: dict, hints: FetchHints) -> list[Job]:
         host = config.get("host")
         if not host:

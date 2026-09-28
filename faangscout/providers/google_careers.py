@@ -40,6 +40,8 @@ _MAX_PAGES = 10
 
 @register("google_careers")
 class GoogleCareersProvider(Provider):
+    keyword_search = True
+
     def fetch(self, config: dict, hints: FetchHints) -> list[Job]:
         base = config.get("base_url", _BASE)
         params: dict[str, object] = {"sort_by": "date"}
