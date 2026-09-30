@@ -117,6 +117,13 @@ def build_parser() -> argparse.ArgumentParser:
         help="Email the Markdown report to this address over SMTP (settings from SMTP_HOST, "
         "SMTP_PORT, SMTP_USERNAME, SMTP_PASSWORD). Only sent when there are openings",
     )
+    parser.add_argument(
+        "--search-term",
+        dest="search_terms",
+        action="append",
+        metavar="TEXT",
+        help="Keyword to search keyword-driven boards with (repeatable; default: the role)",
+    )
     parser.add_argument("--email-subject", metavar="TEXT", help="Subject for --email-to (a default is built)")
     parser.add_argument(
         "--comment-out",
@@ -155,6 +162,7 @@ def main(argv: list[str] | None = None) -> int:
         semantic=True if args.semantic else None,
         location=args.location,
         experience=_experience_filter(args),
+        search_terms=args.search_terms,
     )
     registry = load_registry(args.companies_file)
     first_seen = FirstSeenStore(args.first_seen_file) if args.first_seen_file else None
@@ -226,6 +234,9 @@ def apply_config(args: argparse.Namespace) -> None:
         args.companies = _dedupe(str(c).strip() for c in companies if str(c).strip())
     if args.role is None:
         args.role = config.get("role")
+    if not args.search_terms and config.get("search_terms"):
+        terms = config["search_terms"]
+        args.search_terms = [terms] if isinstance(terms, str) else [str(t) for t in terms]
     if args.hours is None:
         args.hours = float(config.get("hours", DEFAULT_HOURS))
     if args.limit is None and config.get("limit") is not None:

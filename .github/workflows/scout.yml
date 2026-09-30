@@ -1,12 +1,18 @@
 # Runs FaangScout on a GitHub runner, which (unlike some sandboxes) can reach
 # the career portals. Edit scout.yaml to change what it looks for.
 #
-#   - Daily at 14:00 IST: posts NEW openings as a comment on the
+#   - Daily at 14:00 IST (external timer): posts NEW openings as a comment on the
 #     "FaangScout results" issue, which emails you.
 #   - On demand: Actions tab -> FaangScout -> Run workflow.
 #   - On push to feature/firstDraft (search config, workflow, or code): a
 #     test run. It shows results in the run summary but does NOT email or mark
 #     jobs as reported, so development pushes never eat into the daily email.
+#
+# Timing: GitHub's own `schedule` is best-effort and has started this repo's
+# runs 5-6 hours late. For an email at exactly 14:00 IST, an external timer
+# (cron-job.org) starts the run through the API at 14:00 - see README "On-time
+# delivery". The `schedule` below stays as a backup: a late backup run only
+# sends what is new since the last run, so nothing is sent twice.
 #
 # Note: `schedule` only fires from the default branch (main).
 
@@ -30,7 +36,7 @@ on:
     branches: [feature/firstDraft]
     paths: [scout.yaml, .github/workflows/scout.yml, "faangscout/**", "scripts/**"]
   schedule:
-    - cron: "30 8 * * *"   # 14:00 IST (08:30 UTC)
+    - cron: "17 8 * * *"   # backup: 13:47 IST (08:17 UTC), off the busy :00/:30 slots
 
 permissions:
   contents: read

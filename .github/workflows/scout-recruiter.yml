@@ -2,7 +2,7 @@
 # profiles/recruiter.yaml (recruiter roles, same companies as scout.yaml).
 # Runs alongside scout.yml with its own cache, so neither affects the other.
 #
-#   - Daily at 14:00 IST: emails NEW openings to the RECRUITER_EMAIL_TO secret.
+#   - Daily at 14:00 IST (external timer): emails NEW openings to the RECRUITER_EMAIL_TO secret.
 #   - On demand: Actions tab -> FaangScout (recruiter) -> Run workflow.
 #   - On push to feature/firstDraft: a test run that shows results in the run
 #     summary but does NOT email or mark jobs as sent.
@@ -12,6 +12,12 @@
 #   SMTP_PASSWORD       that account's app password (Google Account -> Security
 #                       -> 2-Step Verification -> App passwords)
 #   RECRUITER_EMAIL_TO  who receives it
+#
+# Timing: GitHub's own `schedule` is best-effort and has started this repo's
+# runs 5-6 hours late. For an email at exactly 14:00 IST, an external timer
+# (cron-job.org) starts the run through the API at 14:00 - see README "On-time
+# delivery". The `schedule` below stays as a backup: a late backup run only
+# sends what is new since the last run, so nothing is sent twice.
 #
 # Note: `schedule` only fires from the default branch (main).
 
@@ -27,7 +33,7 @@ on:
     branches: [feature/firstDraft]
     paths: [profiles/recruiter.yaml, scout.yaml, .github/workflows/scout-recruiter.yml, "faangscout/**"]
   schedule:
-    - cron: "30 8 * * *"   # 14:00 IST (08:30 UTC)
+    - cron: "17 8 * * *"   # backup: 13:47 IST (08:17 UTC), off the busy :00/:30 slots
 
 permissions:
   contents: read

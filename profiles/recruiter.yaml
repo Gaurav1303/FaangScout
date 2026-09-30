@@ -4,10 +4,23 @@
 
 extends: ../scout.yaml
 
-role: recruiter           # also matches Talent Acquisition, Sourcer, Recruiting ... titles
+role: recruiter           # matches Recruiter, Talent Acquisition, Campus/University
+                          # Recruiting, Sourcer, TA Partner, Hiring Partner ... titles
+                          # (the list is ROLE_SYNONYMS["recruiter"] in faangscout/normalize.py)
+# Boards that search by keyword (Amazon, Apple, Google, Microsoft, JPMorgan,
+# Workday ...) only return what the keyword finds, so ask them for each of these.
+search_terms:
+  - recruiter
+  - talent acquisition
+  - recruitment
+  - recruiting
+  - sourcer
+  - campus hiring
 hours: 24
 location: India
 experience:
   years: 5                # "3-6 yrs", "5+ yrs" pass; "8+ yrs" doesn't; unstated are kept
+  overqualified_years: 2  # "2-4 yrs" / "1-3 yrs" still pass; "0-2 yrs" doesn't
+  exclude_titles: [intern, internship, apprentice, apprenticeship, trainee]
   sde: null               # the SDE-level rule is for engineering titles only
   ladders: false          # company engineering ladders don't apply to recruiter titles

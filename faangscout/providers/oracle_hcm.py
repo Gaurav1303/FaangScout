@@ -49,6 +49,8 @@ def build_finder(site: str, *, offset: int, keyword: str | None) -> str:
 
 @register("oracle_hcm")
 class OracleHcmProvider(Provider):
+    keyword_search = True
+
     def fetch(self, config: dict, hints: FetchHints) -> list[Job]:
         host = config.get("host")
         site = config.get("site")

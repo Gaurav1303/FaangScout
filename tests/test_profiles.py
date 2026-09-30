@@ -1,5 +1,6 @@
 """A second search profile (recruiter) next to the default one, and email delivery."""
 
+from dataclasses import replace
 from pathlib import Path
 from unittest import mock
 
@@ -7,7 +8,7 @@ import pytest
 
 from faangscout.cli import _experience_filter, apply_config, build_parser, load_config
 from faangscout.experience import assess
-from faangscout.filters.experience import ExperienceFilter, parse_config
+from faangscout.filters.experience import ExperienceConfig, ExperienceFilter, parse_config
 from faangscout.filters.role import RoleKeywordFilter as RoleFilter
 from faangscout.models import Job, SearchCriteria
 from faangscout.normalize import expand_role_query
@@ -20,6 +21,11 @@ ROOT = Path(__file__).resolve().parents[1]
 def job(title, company="Acme", description=None):
     return Job(company=company, title=title, url=f"https://x/{title}", source="greenhouse",
                external_id=title, description=description)
+
+
+def criteria_for(args):
+    return SearchCriteria.build(args.companies, role=args.role, experience=_experience_filter(args),
+                                search_terms=args.search_terms)
 
 
 def args_for(config: Path, *argv):
@@ -55,7 +61,11 @@ def test_default_config_criteria_unchanged():
     assert args.location == "India"
     assert args.hours == 24.0
     assert _experience_filter(args) == 3.0  # a plain number: default sde/ladders
-    assert parse_config(_experience_filter(args)) == (3.0, True, 2, True)
+    assert parse_config(_experience_filter(args)) == ExperienceConfig(years=3.0)
+    assert ExperienceConfig(years=3.0) == ExperienceConfig(
+        years=3.0, include_unknown=True, sde=2, ladders=True, overqualified_years=0, exclude_titles=())
+    assert not args.search_terms
+    assert criteria_for(args).search_terms == ()
 
 
 def test_recruiter_profile_uses_the_same_companies():
@@ -65,8 +75,11 @@ def test_recruiter_profile_uses_the_same_companies():
     assert rec.role == "recruiter"
     assert rec.location == "India"
     assert rec.hours == 24.0
-    assert _experience_filter(rec) == {"years": 5.0, "sde": None, "ladders": False}
-    assert parse_config(_experience_filter(rec)) == (5.0, True, None, False)
+    cfg = parse_config(_experience_filter(rec))
+    assert (cfg.years, cfg.sde, cfg.ladders, cfg.overqualified_years) == (5.0, None, False, 2.0)
+    assert "intern" in cfg.exclude_titles
+    assert criteria_for(rec).search_terms[:2] == ("recruiter", "talent acquisition")
+    assert "campus hiring" in criteria_for(rec).search_terms
 
 
 # --------------------------------------------------------------------------- #
@@ -237,3 +250,112 @@ def test_his_workflow_does_not_email():
     rec = (ROOT / ".github" / "workflows" / "scout-recruiter.yml").read_text()
     assert "profiles/recruiter.yaml" in rec and ".faangscout-recruiter" in rec
     assert "bhatt" not in rec  # the address is a secret, not in the repo
+
+
+# --------------------------------------------------------------------------- #
+# Wider recruiter search: vocabulary, search terms, experience tolerance
+# --------------------------------------------------------------------------- #
+
+@pytest.mark.parametrize("title, keep", [
+    ("Campus Hiring Lead", True),
+    ("Campus Recruitment Manager", True),
+    ("University Relations Partner", True),
+    ("University Recruiting Specialist", True),
+    ("TA Partner - Tech Hiring", True),
+    ("Talent Sourcing Specialist", True),
+    ("Hiring Partner", True),
+    ("Employer Branding Specialist", True),
+    ("Early Careers Recruiter", True),
+    ("Associate, TA Stores", False),
+    ("Data Lead", False),
+    ("Software Engineer, Early Careers", False),
+    ("Sourcing Specialist Associate-Travel", False),  # procurement
+    ("Strategic Sourcing Partner", False),
+])
+def test_wider_recruiter_vocabulary(title, keep):
+    criteria = SearchCriteria.build(["a"], role="recruiter", posted_within_hours=None)
+    kept, _ = RoleFilter().apply([job(title)], criteria)
+    assert bool(kept) is keep
+
+
+def test_talent_acquisition_department_counts():
+    criteria = SearchCriteria.build(["a"], role="recruiter", posted_within_hours=None)
+    coordinator = replace(job("Program Coordinator"), department="Talent Acquisition")
+    kept, _ = RoleFilter().apply([coordinator], criteria)
+    assert kept
+
+
+def test_overqualified_tolerance_and_title_exclusions():
+    criteria = SearchCriteria.build(["a"], posted_within_hours=None, experience={
+        "years": 5, "sde": None, "ladders": False, "overqualified_years": 2, "exclude_titles": ["intern"]})
+    jobs = [
+        job("Recruiter A", description="2-4 years of recruiting experience"),   # over by 1 -> kept
+        job("Recruiter B", description="1-3 years of recruiting experience"),   # over by 2 -> kept
+        job("Recruiter C", description="0-2 years of experience"),              # over by 3 -> dropped
+        job("Recruiter D", description="6+ years of experience"),               # needs more -> dropped
+        job("Associate Recruiter"),                                             # 0-2 by title -> dropped
+        job("Talent Acquisition Intern", description="1+ years of experience"), # excluded title
+        job("Internal Mobility Recruiter"),                                     # "intern" is a whole word only
+    ]
+    kept, rejected = ExperienceFilter().apply(jobs, criteria)
+    assert [k.title for k in kept] == ["Recruiter A", "Recruiter B", "Internal Mobility Recruiter"]
+    assert any(r.reason == "title says 'intern'" for r in rejected)
+
+
+def test_admits_without_tolerance_is_unchanged():
+    from faangscout.models import ExperienceReq
+
+    req = ExperienceReq(min_years=2, max_years=4)
+    assert req.admits(5) is False and req.admits(3) is True
+    assert req.admits(5, over=2) is True and req.admits(7, over=2) is False
+
+
+class _FakeKeywordBoard:
+    keyword_search = True
+
+    def __init__(self, fail=()):
+        self.calls, self.fail = [], set(fail)
+
+    def fetch(self, config, hints):
+        self.calls.append(hints.role_query)
+        if hints.role_query in self.fail:
+            from faangscout.providers.base import ProviderError
+            raise ProviderError(f"{hints.role_query} failed")
+        shared = job("Talent Acquisition Partner")
+        return [shared, job(f"{hints.role_query} only")]
+
+
+def test_keyword_boards_are_searched_once_per_term():
+    from faangscout.models import FetchHints
+    from faangscout.scout import _fetch_terms
+
+    board = _FakeKeywordBoard()
+    hints = FetchHints(role_query="recruiter", search_terms=("recruiter", "talent acquisition", "sourcer"))
+    jobs = _fetch_terms(board, {}, hints)
+    assert board.calls == ["recruiter", "talent acquisition", "sourcer"]
+    assert sorted(j.title for j in jobs) == [
+        "Talent Acquisition Partner", "recruiter only", "sourcer only", "talent acquisition only"]
+
+
+def test_one_failing_term_keeps_the_rest_and_all_failing_raises():
+    from faangscout.models import FetchHints
+    from faangscout.providers.base import ProviderError
+    from faangscout.scout import _fetch_terms
+
+    hints = FetchHints(role_query="recruiter", search_terms=("recruiter", "sourcer"))
+    assert len(_fetch_terms(_FakeKeywordBoard(fail={"sourcer"}), {}, hints)) == 2
+    with pytest.raises(ProviderError):
+        _fetch_terms(_FakeKeywordBoard(fail={"recruiter", "sourcer"}), {}, hints)
+
+
+def test_full_list_boards_and_single_term_are_fetched_once():
+    from faangscout.models import FetchHints
+    from faangscout.scout import _fetch_terms
+
+    full_list = _FakeKeywordBoard()
+    full_list.keyword_search = False
+    _fetch_terms(full_list, {}, FetchHints(role_query="recruiter", search_terms=("recruiter", "sourcer")))
+    assert full_list.calls == ["recruiter"]
+    single = _FakeKeywordBoard()
+    _fetch_terms(single, {}, FetchHints(role_query="software engineer"))
+    assert single.calls == ["software engineer"]

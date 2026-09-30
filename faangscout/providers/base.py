@@ -36,6 +36,10 @@ class Provider(ABC):
     """
 
     name: str = "base"
+    #: True when the board is searched by keyword (``hints.role_query``) and
+    #: returns only what matches it. The orchestrator then asks once per
+    #: search term; full-list boards are fetched once.
+    keyword_search: bool = False
 
     def __init__(self, client: httpx.Client | None = None) -> None:
         self._owns_client = client is None

@@ -172,8 +172,9 @@ GitHub run it. `.github/workflows/scout.yml` does, on a GitHub-hosted runner:
 - Edit `scout.yaml` - your companies, role, and time window.
 - Make the repo private if you don't want your search visible: Actions logs and
   the results issue show which companies and role you're targeting.
-- The daily run (2:00 PM IST, `cron: "30 8 * * *"` in UTC) only fires from the
-  default branch, so it starts once the workflow is merged to `main`.
+- The daily run is started at 2:00 PM IST by an external timer (see
+  **On-time delivery** below). GitHub's own `schedule` (`cron: "17 8 * * *"`,
+  UTC) stays as a backup; it only fires from the default branch (`main`).
 - Run on demand: **Actions → FaangScout → Run workflow**, optionally
   overriding the role or hours, or picking `check` / `discover` mode.
 
@@ -185,12 +186,35 @@ into `known_boards.yaml` so later runs skip probing it.
 The seen-jobs cache is branch-scoped: jobs reported by on-demand runs on a
 feature branch may be emailed once more by the first scheduled run on `main`.
 
+### On-time delivery (external timer)
+
+GitHub's `schedule` trigger is best-effort: on this repo it has started runs
+5-6 hours after the cron time. To get the email at 2:00 PM IST sharp, a free
+cron service starts the workflows through GitHub's API instead:
+
+1. **Token** - GitHub → Settings → Developer settings → Personal access
+   tokens → **Fine-grained tokens** → Generate. Repository access: *Only
+   select repositories* → `FaangScout`. Permissions → Repository →
+   **Actions: Read and write** (nothing else). Pick an expiry and note it.
+2. **cron-job.org** - create a free account, then one cron job per workflow:
+   - URL: `https://api.github.com/repos/Gaurav1303/FaangScout/actions/workflows/scout.yml/dispatches`
+     (and a second job with `scout-recruiter.yml`)
+   - Schedule: every day at 14:00, time zone *Asia/Kolkata*
+   - Advanced → Request method **POST**, request body `{"ref":"main"}`, headers:
+     `Authorization: Bearer <token>`, `Accept: application/vnd.github+json`,
+     `X-GitHub-Api-Version: 2022-11-28`, `Content-Type: application/json`
+   - "Test run" should answer **204**, and a run appears under Actions.
+
+The token lives only in cron-job.org; revoking it stops the timer. A late
+backup `schedule` run after the 2 PM run only sends what is new since then -
+already-sent jobs are remembered - so nothing arrives twice.
+
 ## Profiles: a second search emailed to someone else
 
 `profiles/recruiter.yaml` is a second search - **recruiter** roles (also
 Talent Acquisition, Sourcer, Recruiting ... titles) in India that fit **5
 years** - over the same companies. `.github/workflows/scout-recruiter.yml`
-runs it daily at 2:00 PM IST and emails the new openings straight to its
+runs it daily at 2:00 PM IST (same external timer) and emails the new openings straight to its
 recipient over SMTP. It is independent of the main search: its own workflow,
 concurrency group and seen-jobs cache (`.faangscout-recruiter/`), and no
 issue comments. `scout.yml` and `scout.yaml` are unchanged by it.
@@ -201,13 +225,34 @@ company list lives in `scout.yaml` alone:
 ```yaml
 extends: ../scout.yaml
 role: recruiter
-experience: {years: 5, sde: null, ladders: false}
+search_terms: [recruiter, talent acquisition, recruitment, recruiting, sourcer, campus hiring]
+experience:
+  years: 5
+  overqualified_years: 2
+  exclude_titles: [intern, internship, apprentice, apprenticeship, trainee]
+  sde: null
+  ladders: false
 ```
 
-`sde: null, ladders: false` turn off the engineering-level rules (company
-ladders map engineering titles - "Lead" at Salesforce is LMTS, 8+ yrs, which
-says nothing about a "Lead Recruiter"); stated years decide, then generic title
-words ("Senior"/"Lead" 5+, "Associate" 0-2).
+- `role: recruiter` matches Recruiter, Talent Acquisition, Campus/University
+  Recruiting, Campus Hiring, University Relations, Sourcer, TA
+  Partner/Specialist/Lead, Hiring Partner, Employer Branding ... titles (and any
+  job in a "Talent Acquisition" department) - `ROLE_SYNONYMS["recruiter"]` in
+  `faangscout/normalize.py`.
+- `search_terms`: boards that search by keyword (Amazon, Apple, Google,
+  Eightfold, Oracle, TalentBrew, and Workday's first pass) only return what the
+  keyword finds, so they are asked once per term. Full-list boards (Greenhouse,
+  Lever, Ashby, ...) already see every posting and are read once. Without
+  `search_terms` the role is the one keyword, as before.
+- `overqualified_years: 2` keeps postings whose range tops out up to 2 years
+  below hers ("2-4 yrs", "1-3 yrs" at 5); "0-2 yrs" and entry-level titles are
+  still dropped, as are roles needing more.
+- `exclude_titles` drops internships and apprenticeships whatever years they
+  state.
+- `sde: null, ladders: false` turn off the engineering-level rules (company
+  ladders map engineering titles - "Lead" at Salesforce is LMTS, 8+ yrs, which
+  says nothing about a "Lead Recruiter"); stated years decide, then generic
+  title words ("Senior"/"Lead" 5+, "Associate" 0-2).
 
 **Set up** (Settings → Secrets and variables → Actions → New repository secret):
 
@@ -221,11 +266,6 @@ The recipient is a secret, not in the config, because the repo is public.
 Send one now with **Actions → FaangScout (recruiter) → Run workflow**
 (optionally with a wider `hours`). A day with nothing new sends no email.
 Other SMTP servers work too: set `SMTP_HOST` / `SMTP_PORT` (STARTTLS).
-
-Known limit: a few boards search by keyword only (Eightfold, Oracle), so a
-posting titled only "Talent Acquisition Partner" can be missed there;
-full-list boards (Greenhouse, Lever, Ashby, Workday's second pass, ...) see
-every title.
 
 For a local run: `SMTP_USERNAME=... SMTP_PASSWORD=... faangscout --config
 profiles/recruiter.yaml --email-to someone@example.com`.

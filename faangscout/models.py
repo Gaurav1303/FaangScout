@@ -52,13 +52,17 @@ class ExperienceReq:
     #: The ladder level the title matched, e.g. "Salesforce MTS".
     level: str = ""
 
-    def admits(self, years: float) -> bool | None:
-        """Whether someone with ``years`` of experience fits. None if unknown."""
+    def admits(self, years: float, *, over: float = 0) -> bool | None:
+        """Whether someone with ``years`` of experience fits. None if unknown.
+
+        ``over`` tolerates being over-qualified by that many years: at 5 yrs
+        with ``over=2``, "2-4 yrs" fits and "0-2 yrs" doesn't.
+        """
         if self.min_years is None:
             return None
         if years < self.min_years:
             return False
-        return self.max_years is None or years <= self.max_years
+        return self.max_years is None or years <= self.max_years + over
 
     def label(self) -> str:
         if self.min_years is None:
@@ -193,6 +197,9 @@ class SearchCriteria:
     filters: dict[str, Any] = field(default_factory=dict)
     include_undated: bool = False
     limit: int | None = None
+    #: Keywords to search keyword-driven boards with; empty means the role.
+    #: Only widens what is fetched - the role filter still decides matches.
+    search_terms: tuple[str, ...] = ()
 
     @classmethod
     def build(
@@ -203,6 +210,7 @@ class SearchCriteria:
         posted_within_hours: float | None = 24,
         include_undated: bool = False,
         limit: int | None = None,
+        search_terms: list[str] | tuple[str, ...] | None = None,
         **extra_filters: Any,
     ) -> SearchCriteria:
         filters: dict[str, Any] = {}
@@ -218,6 +226,7 @@ class SearchCriteria:
             filters=filters,
             include_undated=include_undated,
             limit=limit,
+            search_terms=tuple(dict.fromkeys(t.strip() for t in search_terms or () if t and t.strip())),
         )
 
     @property
@@ -250,6 +259,10 @@ class FetchHints:
 
     since: datetime | None = None
     role_query: str | None = None
+    #: Every keyword to search boards by (a profile's ``search_terms``). Boards
+    #: that search by keyword are asked once per term, ``role_query`` being
+    #: the term of that call; empty means just ``role_query``.
+    search_terms: tuple[str, ...] = ()
     #: The location filter's value ("India"), for boards that can filter by
     #: place server-side (Apple).
     location: str | None = None
